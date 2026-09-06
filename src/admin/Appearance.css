@@ -1,0 +1,144 @@
+.appearance-page {
+  max-width: 900px;
+}
+
+.admin-page-desc {
+  font-size: 0.88rem;
+  color: #71717a;
+  margin-top: 0.25rem;
+}
+
+.appearance-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.appearance-section {
+  background: white;
+  border: 1px solid #e4e4e7;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.appearance-section-header {
+  border-bottom: 1px solid #f4f4f5;
+  padding-bottom: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.appearance-section-header h2 {
+  font-family: var(--f-body);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--c-anthracite);
+}
+
+.appearance-section-header p {
+  font-size: 0.82rem;
+  color: #71717a;
+  margin-top: 0.2rem;
+}
+
+/* Hero preview box */
+.hero-preview-box {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #18181b;
+  border: 1px solid #e4e4e7;
+}
+
+.hero-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.85;
+}
+
+.hero-preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  padding: 1rem;
+  text-align: center;
+}
+
+.hero-preview-hint {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Logo preview box */
+.logo-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+}
+
+.logo-preview-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #e4e4e7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.logo-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.logo-preview-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.appearance-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 0;
+}
+
+@media (max-width: 768px) {
+  .appearance-section {
+    padding: 1.25rem;
+  }
+
+  .hero-preview-box {
+    height: 200px;
+  }
+
+  .logo-preview-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .appearance-actions .admin-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

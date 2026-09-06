@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import defaultProjects from '../../data/projects.json'
+import defaultSettings from '../../data/settings.json'
 import FadeIn from '../components/FadeIn'
 import './Home.css'
 
 export default function Home() {
   const [projects, setProjects] = useState([])
+  const [settings, setSettings] = useState(defaultSettings)
 
   useEffect(() => {
     fetch('/api/projects')
@@ -21,34 +23,42 @@ export default function Home() {
         }))
         setProjects(formatted.slice(0, 3))
       })
+
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => {
+        if (d) setSettings(prev => ({ ...prev, ...d, hero: { ...prev.hero, ...(d.hero || {}) } }))
+      })
+      .catch(() => {})
   }, [])
+
+  const hero = settings.hero || defaultSettings.hero
 
   return (
     <>
       {/* Hero */}
       <section className="hero" id="hero">
         <div className="hero-bg">
-          <img src="/images/hero.jpg" alt="Jardin paysager d'exception" />
+          <img src={hero.bgImage || '/images/hero.jpg'} alt="Jardin paysager d'exception" />
         </div>
         <div className="hero-overlay" />
 
         <div className="container hero-container">
           <div className="hero-content">
-            <span className="hero-tagline">Atelier de paysage · Conception & Réalisation</span>
+            <span className="hero-tagline">{hero.tagline}</span>
 
             <h1 className="hero-title">
-              L'art de façonner <br />
-              <em>vos espaces extérieurs</em>
+              {hero.titleLine1} <br />
+              <em>{hero.titleLine2}</em>
             </h1>
 
             <p className="hero-desc">
-              Conception sur-mesure, aménagement végétal et harmonie des matières.
-              Nous donnons vie à des jardins d'exception, pensés pour durer et évoluer au fil des saisons.
+              {hero.description}
             </p>
 
             <div className="hero-actions">
               <Link to="/realisations" className="hero-btn">
-                <span>Regarder les réalisations</span>
+                <span>{hero.buttonText}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>

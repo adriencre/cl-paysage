@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import defaultSettings from '../../data/settings.json'
 import './Navbar.css'
 
 const links = [
@@ -12,7 +13,22 @@ const links = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [branding, setBranding] = useState(defaultSettings.branding || {
+    brandName: 'CL',
+    brandAccent: 'Paysage',
+    brandSub: 'Paysagiste Concepteur',
+    logoUrl: '/images/logo.png',
+  })
   const location = useLocation()
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.branding) setBranding(d.branding)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -33,10 +49,10 @@ export default function Navbar() {
     <nav className={`navbar${scrolled ? ' scrolled' : ''}`} id="main-nav">
       <div className="container">
         <Link to="/" className="navbar-brand">
-          <img src="/images/logo.png" alt="CL Paysage" className="navbar-logo-img" />
+          <img src={branding.logoUrl || '/images/logo.png'} alt="Logo" className="navbar-logo-img" />
           <div className="navbar-brand-text">
-            <span className="navbar-brand-name">CL <em>Paysage</em></span>
-            <span className="navbar-brand-sub">Paysagiste Concepteur</span>
+            <span className="navbar-brand-name">{branding.brandName} <em>{branding.brandAccent}</em></span>
+            <span className="navbar-brand-sub">{branding.brandSub}</span>
           </div>
         </Link>
 

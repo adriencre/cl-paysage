@@ -1,4 +1,18 @@
 {
+  "branding": {
+    "brandName": "CL",
+    "brandAccent": "Paysage",
+    "brandSub": "Paysagiste Concepteur",
+    "logoUrl": "/images/logo.png"
+  },
+  "hero": {
+    "bgImage": "/images/hero.jpg",
+    "tagline": "Atelier de paysage · Conception & Réalisation",
+    "titleLine1": "L'art de façonner",
+    "titleLine2": "vos espaces extérieurs",
+    "description": "Conception sur-mesure, aménagement végétal et harmonie des matières. Nous donnons vie à des jardins d'exception, pensés pour durer et évoluer au fil des saisons.",
+    "buttonText": "Regarder les réalisations"
+  },
   "phone": "06 00 00 00 00",
   "email": "contact@clpaysage.fr",
   "address": "Région et alentours",

@@ -15,6 +15,7 @@ import AdminLayout from './admin/AdminLayout'
 import Dashboard from './admin/Dashboard'
 import ProjectForm from './admin/ProjectForm'
 import Settings from './admin/Settings'
+import Appearance from './admin/Appearance'
 
 function AdminRoute({ children }) {
   const [token, setToken] = useState(localStorage.getItem('admin_token'))
@@ -61,6 +62,9 @@ export default function App() {
           } />
           <Route path="/admin/editer/:id" element={
             <AdminRoute>{({ token }) => <ProjectForm token={token} isEdit />}</AdminRoute>
+          } />
+          <Route path="/admin/apparence" element={
+            <AdminRoute>{({ token }) => <Appearance token={token} />}</AdminRoute>
           } />
           <Route path="/admin/parametres" element={
             <AdminRoute>{({ token }) => <Settings token={token} />}</AdminRoute>
