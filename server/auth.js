@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cl-paysage-admin-secret-key-2024'
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'clpaysage2024'
+const JWT_SECRET = process.env.JWT_SECRET || 'cl-paysage-admin-secret-key-2026'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'clpaysage2026'
 
 export function login(password) {
   if (password === ADMIN_PASSWORD) {
