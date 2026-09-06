@@ -1,0 +1,17 @@
+.settings-form {
+  max-width: 600px;
+}
+
+.settings-form .form-section {
+  margin-bottom: 1.5rem;
+}
+
+.settings-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #16a34a;
+  margin-left: 1rem;
+  animation: toast-in 0.3s ease;
+}

@@ -1,0 +1,213 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  background: rgba(250, 250, 247, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: background var(--t-normal), box-shadow var(--t-normal), border-color var(--t-normal);
+}
+
+.navbar.scrolled {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.navbar .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  transition: opacity var(--t-fast);
+}
+
+.navbar-brand:hover {
+  opacity: 0.9;
+}
+
+.navbar-logo-img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: var(--c-white-pure);
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(74, 93, 58, 0.15);
+  flex-shrink: 0;
+  transition: transform var(--t-normal);
+}
+
+.navbar-brand:hover .navbar-logo-img {
+  transform: rotate(5deg) scale(1.05);
+}
+
+.navbar-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar-brand-name {
+  font-family: var(--f-display);
+  font-size: 1.35rem;
+  line-height: 1.1;
+  color: var(--c-anthracite);
+  letter-spacing: -0.01em;
+}
+
+.navbar-brand-name em {
+  font-style: italic;
+  color: var(--c-olive);
+  font-family: var(--f-display);
+}
+
+.navbar-brand-sub {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-stone);
+  font-weight: 600;
+}
+
+.navbar-links {
+  display: flex;
+  gap: var(--s-lg);
+  align-items: center;
+}
+
+.navbar-link {
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-anthracite);
+  position: relative;
+  padding: 0.25rem 0;
+  transition: color var(--t-fast);
+}
+
+.navbar-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--c-olive);
+  transition: width var(--t-normal);
+}
+
+.navbar-link:hover::after,
+.navbar-link.active::after {
+  width: 100%;
+}
+
+.navbar-link.active {
+  color: var(--c-olive);
+}
+
+/* Devis CTA Button */
+.navbar-btn-devis {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--c-olive);
+  color: var(--c-white);
+  padding: 0.55rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: all var(--t-fast);
+  box-shadow: 0 2px 10px rgba(74, 93, 58, 0.25);
+  margin-left: 0.5rem;
+}
+
+.navbar-btn-devis svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--t-fast);
+}
+
+.navbar-btn-devis:hover {
+  background: var(--c-olive-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(74, 93, 58, 0.4);
+}
+
+.navbar-btn-devis:hover svg {
+  transform: translateX(3px);
+}
+
+/* Mobile menu */
+.navbar-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 0.5rem;
+  z-index: 110;
+}
+
+.navbar-toggle span {
+  display: block;
+  width: 24px;
+  height: 1.5px;
+  background: var(--c-anthracite);
+  transition: all var(--t-normal);
+}
+
+.navbar-toggle.open span:nth-child(1) {
+  transform: rotate(45deg) translate(4px, 5px);
+}
+
+.navbar-toggle.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.navbar-toggle.open span:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -5px);
+}
+
+@media (max-width: 768px) {
+  .navbar-toggle {
+    display: flex;
+  }
+
+  .navbar-links {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100dvh;
+    background: var(--c-white);
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: var(--s-lg);
+    transform: translateX(100%);
+    transition: transform var(--t-normal);
+  }
+
+  .navbar-links.open {
+    transform: translateX(0);
+  }
+
+  .navbar-link {
+    font-size: 1.1rem;
+  }
+}

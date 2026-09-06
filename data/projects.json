@@ -1,0 +1,99 @@
+[
+  {
+    "id": "projet-1",
+    "title": "Jardin méditerranéen",
+    "description": "Aménagement complet d'un jardin méditerranéen avec terrasse en pierre naturelle, pergola végétalisée et plantations de lavande, romarin et oliviers. Un espace de vie extérieur pensé pour profiter du climat doux toute l'année.",
+    "category": "amenagement",
+    "location": "Région Sud",
+    "date": "2024-06",
+    "photos": [
+      {
+        "filename": "gallery-1.jpg",
+        "isMain": true,
+        "isStatic": true
+      },
+      {
+        "filename": "hero.jpg",
+        "isMain": false,
+        "isStatic": true
+      }
+    ],
+    "socialLinks": {
+      "instagram": "",
+      "facebook": "",
+      "pinterest": "",
+      "tiktok": ""
+    },
+    "published": true,
+    "createdAt": "2024-06-15T10:00:00Z"
+  },
+  {
+    "id": "projet-2",
+    "title": "Jardin zen japonais",
+    "description": "Création d'un jardin d'inspiration japonaise avec pas japonais en pierre, bambous, mousse, érable du Japon et fontaine tsukubai. Un havre de paix et de méditation au cœur de la ville.",
+    "category": "jardin",
+    "location": "Région Centre",
+    "date": "2024-03",
+    "photos": [
+      {
+        "filename": "gallery-2.jpg",
+        "isMain": true,
+        "isStatic": true
+      }
+    ],
+    "socialLinks": {
+      "instagram": "",
+      "facebook": "",
+      "pinterest": "",
+      "tiktok": ""
+    },
+    "published": true,
+    "createdAt": "2024-03-20T10:00:00Z"
+  },
+  {
+    "id": "projet-3",
+    "title": "Aménagement contemporain",
+    "description": "Conception et réalisation d'un espace extérieur contemporain alliant lignes épurées, graminées ornementales et éclairage paysager. Terrasse en dalles grand format et mobilier design pour un rendu moderne et élégant.",
+    "category": "terrasse",
+    "location": "Région Ouest",
+    "date": "2024-01",
+    "photos": [
+      {
+        "filename": "gallery-3.jpg",
+        "isMain": true,
+        "isStatic": true
+      }
+    ],
+    "socialLinks": {
+      "instagram": "",
+      "facebook": "",
+      "pinterest": "",
+      "tiktok": ""
+    },
+    "published": true,
+    "createdAt": "2024-01-10T10:00:00Z"
+  },
+  {
+    "id": "projet-4",
+    "title": "Jardin fleuri et pelouse",
+    "description": "Création d'un jardin classique avec pelouse parfaite, massifs fleuris et haies taillées. Un jardin de charme avec pergola et éclairage d'ambiance pour les soirées d'été.",
+    "category": "jardin",
+    "location": "Région Nord",
+    "date": "2023-09",
+    "photos": [
+      {
+        "filename": "gallery-4.jpg",
+        "isMain": true,
+        "isStatic": true
+      }
+    ],
+    "socialLinks": {
+      "instagram": "",
+      "facebook": "",
+      "pinterest": "",
+      "tiktok": ""
+    },
+    "published": true,
+    "createdAt": "2023-09-05T10:00:00Z"
+  }
+]

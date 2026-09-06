@@ -1,0 +1,244 @@
+/* ===================================
+   CL Paysage — Design System
+   =================================== */
+
+/* --- Reset & Base --- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Colors */
+  --c-olive: #4A5D3A;
+  --c-olive-light: #5E7548;
+  --c-olive-dark: #3A4A2E;
+  --c-beige: #F5F0E8;
+  --c-beige-dark: #E8E0D0;
+  --c-stone: #8B7355;
+  --c-stone-light: #A08968;
+  --c-anthracite: #2C2C2C;
+  --c-white: #FAFAF7;
+  --c-white-pure: #FFFFFF;
+  --c-gray: #9A9A9A;
+  --c-gray-light: #D4D0C8;
+  --c-overlay: rgba(44, 44, 44, 0.7);
+
+  /* Typography */
+  --f-display: 'DM Serif Display', Georgia, serif;
+  --f-body: 'Inter', -apple-system, sans-serif;
+
+  /* Spacing */
+  --s-xs: 0.5rem;
+  --s-sm: 1rem;
+  --s-md: 1.5rem;
+  --s-lg: 2.5rem;
+  --s-xl: 4rem;
+  --s-2xl: 6rem;
+  --s-3xl: 8rem;
+
+  /* Transitions */
+  --t-fast: 0.2s ease;
+  --t-normal: 0.4s ease;
+  --t-slow: 0.7s ease;
+  --t-slower: 1s ease;
+
+  /* Layout */
+  --max-width: 1200px;
+  --nav-height: 80px;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--f-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--c-anthracite);
+  background-color: var(--c-white);
+  overflow-x: hidden;
+}
+
+/* --- Typography --- */
+h1, h2, h3, h4 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--c-anthracite);
+}
+
+h1 {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+}
+
+p {
+  color: #5A5A5A;
+  max-width: 60ch;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  font-family: var(--f-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* --- Utilities --- */
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--s-md);
+}
+
+.section {
+  padding: var(--s-3xl) 0;
+}
+
+.section-label {
+  font-family: var(--f-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--c-olive);
+  margin-bottom: var(--s-sm);
+}
+
+.section-title {
+  margin-bottom: var(--s-lg);
+}
+
+.section-subtitle {
+  font-size: 1.05rem;
+  color: var(--c-gray);
+  max-width: 50ch;
+  line-height: 1.8;
+}
+
+/* --- Buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--f-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1rem 2rem;
+  border-radius: 0;
+  transition: all var(--t-normal);
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--c-olive);
+  color: var(--c-white);
+  border: 1px solid var(--c-olive);
+}
+
+.btn-primary:hover {
+  background: var(--c-olive-dark);
+  border-color: var(--c-olive-dark);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--c-anthracite);
+  border: 1px solid var(--c-anthracite);
+}
+
+.btn-outline:hover {
+  background: var(--c-anthracite);
+  color: var(--c-white);
+}
+
+.btn-text {
+  padding: 0;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--c-olive);
+  position: relative;
+}
+
+.btn-text::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 1px;
+  background: var(--c-olive);
+  transition: width var(--t-normal);
+}
+
+.btn-text:hover::after {
+  width: 100%;
+}
+
+/* --- Dividers --- */
+.divider {
+  width: 60px;
+  height: 1px;
+  background: var(--c-olive);
+  margin: var(--s-md) 0;
+}
+
+/* --- Fade-in animation --- */
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity var(--t-slow), transform var(--t-slow);
+}
+
+.fade-in-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .section {
+    padding: var(--s-xl) 0;
+  }
+
+  :root {
+    --nav-height: 64px;
+  }
+}
