@@ -28,62 +28,34 @@ export default function Home() {
       {/* Hero */}
       <section className="hero" id="hero">
         <div className="hero-bg">
-          <img src="/images/hero.jpg" alt="Jardin paysager au coucher de soleil" />
+          <img src="/images/hero.jpg" alt="Jardin paysager d'exception" />
         </div>
         <div className="hero-overlay" />
 
         <div className="container hero-container">
           <div className="hero-content">
-            <div className="hero-badge">
-              <span className="hero-badge-dot"></span>
-              <span>Paysagiste Concepteur & Aménagement Extérieur</span>
-            </div>
+            <span className="hero-tagline">Atelier de paysage · Conception & Réalisation</span>
 
-            <h1>
-              L'art de sublimer <br />
-              <span className="hero-highlight">vos espaces extérieurs</span>
+            <h1 className="hero-title">
+              L'art de façonner <br />
+              <em>vos espaces extérieurs</em>
             </h1>
 
             <p className="hero-desc">
-              Conception sur-mesure, création paysagère et entretien de jardins d'exception.
-              Nous sculptons vos extérieurs pour en faire de véritables havres de paix.
+              Conception sur-mesure, aménagement végétal et harmonie des matières.
+              Nous donnons vie à des jardins d'exception, pensés pour durer et évoluer au fil des saisons.
             </p>
 
             <div className="hero-actions">
-              <Link to="/realisations" className="hero-btn-premium">
-                <span className="hero-btn-shine"></span>
-                <span className="hero-btn-text">Regarder les réalisations</span>
-                <span className="hero-btn-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </span>
+              <Link to="/realisations" className="hero-btn">
+                <span>Regarder les réalisations</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
               </Link>
-            </div>
-
-            <div className="hero-features">
-              <div className="hero-feature-item">
-                <span className="hero-feature-icon">✦</span>
-                <span>Projets 100% sur-mesure</span>
-              </div>
-              <div className="hero-feature-item">
-                <span className="hero-feature-icon">✦</span>
-                <span>Végétaux & matériaux d'excellence</span>
-              </div>
-              <div className="hero-feature-item">
-                <span className="hero-feature-icon">✦</span>
-                <span>Accompagnement de A à Z</span>
-              </div>
             </div>
           </div>
         </div>
-
-        <a href="#approach" className="hero-scroll" aria-label="Découvrir la suite">
-          <span className="hero-scroll-mouse">
-            <span className="hero-scroll-wheel"></span>
-          </span>
-          <span className="hero-scroll-text">Défiler</span>
-        </a>
       </section>
 
       {/* Approach */}
