@@ -322,7 +322,36 @@
     grid-template-columns: 1fr;
   }
 
+  .form-field input,
+  .form-field textarea,
+  .form-field select,
+  .social-field input {
+    font-size: 16px; /* Prevents auto zoom on mobile */
+  }
+
   .photo-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .photo-dropzone {
+    padding: 1.5rem 1rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .admin-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.85rem;
+  }
+
+  .form-toast {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    text-align: center;
   }
 }

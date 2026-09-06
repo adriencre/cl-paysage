@@ -140,14 +140,38 @@
 @media (max-width: 768px) {
   .contact-layout {
     grid-template-columns: 1fr;
-    gap: var(--s-xl);
+    gap: 2.5rem;
+    margin-top: 1.5rem;
   }
 
   .form-row {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .contact-info {
     order: -1;
+  }
+
+  .contact-info-intro {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    font-size: 16px; /* Prevents iOS auto-zoom */
+    border-radius: 4px;
+  }
+
+  .form-submit {
+    width: 100%;
+    align-self: stretch;
+  }
+
+  .form-submit .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.95rem;
   }
 }
