@@ -10,24 +10,46 @@ export default function Home() {
   const [settings, setSettings] = useState(defaultSettings)
 
   useEffect(() => {
+    const savedProjects = localStorage.getItem('cl_projects')
+    if (savedProjects) {
+      try { setProjects(JSON.parse(savedProjects).slice(0, 3)) } catch {}
+    }
+    const savedSettings = localStorage.getItem('cl_settings')
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings)
+        setSettings(prev => ({ ...prev, ...parsed, hero: { ...prev.hero, ...(parsed.hero || {}) } }))
+      } catch {}
+    }
+
     fetch('/api/projects')
       .then(r => {
         if (!r.ok) throw new Error('API offline')
         return r.json()
       })
-      .then(data => setProjects(data.slice(0, 3)))
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setProjects(data.slice(0, 3))
+          localStorage.setItem('cl_projects', JSON.stringify(data))
+        }
+      })
       .catch(() => {
-        const formatted = defaultProjects.map(p => ({
-          ...p,
-          photos: p.photos.map(ph => ({ ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }))
-        }))
-        setProjects(formatted.slice(0, 3))
+        if (!savedProjects) {
+          const formatted = defaultProjects.map(p => ({
+            ...p,
+            photos: p.photos.map(ph => ({ ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }))
+          }))
+          setProjects(formatted.slice(0, 3))
+        }
       })
 
     fetch('/api/settings')
       .then(r => r.json())
       .then(d => {
-        if (d) setSettings(prev => ({ ...prev, ...d, hero: { ...prev.hero, ...(d.hero || {}) } }))
+        if (d) {
+          setSettings(prev => ({ ...prev, ...d, hero: { ...prev.hero, ...(d.hero || {}) } }))
+          localStorage.setItem('cl_settings', JSON.stringify(d))
+        }
       })
       .catch(() => {})
   }, [])
@@ -132,7 +154,8 @@ export default function Home() {
           <FadeIn>
             <div className="preview-grid">
               {projects.map((project) => {
-                const mainPhoto = project.photos.find(p => p.isMain) || project.photos[0]
+                const photos = project.photos || []
+                const mainPhoto = photos.find(p => p.isMain) || photos[0]
                 return (
                   <Link to={`/realisations/${project.id}`} key={project.id} className="preview-item">
                     {mainPhoto && <img src={mainPhoto.url} alt={project.title} loading="lazy" />}

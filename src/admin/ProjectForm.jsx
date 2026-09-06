@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { fetchAdminProjects, saveAdminProject, fileToBase64 } from '../lib/dataSync'
 import './ProjectForm.css'
 
 const CATEGORIES = [
@@ -32,23 +33,21 @@ export default function ProjectForm({ token, isEdit = false }) {
 
   useEffect(() => {
     if (isEdit && id) {
-      fetch('/api/admin/projects', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(projects => {
-          const p = projects.find(proj => proj.id === id)
-          if (p) {
-            setForm({
-              title: p.title,
-              description: p.description,
-              category: p.category,
-              location: p.location,
-              date: p.date,
-              photos: p.photos,
-              socialLinks: p.socialLinks || { instagram: '', facebook: '', pinterest: '', tiktok: '' },
-              published: p.published,
-            })
-          }
-        })
+      fetchAdminProjects(token).then(projects => {
+        const p = projects.find(proj => proj.id === id)
+        if (p) {
+          setForm({
+            title: p.title,
+            description: p.description,
+            category: p.category,
+            location: p.location,
+            date: p.date,
+            photos: p.photos || [],
+            socialLinks: p.socialLinks || { instagram: '', facebook: '', pinterest: '', tiktok: '' },
+            published: p.published,
+          })
+        }
+      })
     }
   }, [isEdit, id, token])
 
@@ -72,10 +71,11 @@ export default function ProjectForm({ token, isEdit = false }) {
   const uploadFiles = async (files) => {
     if (!files.length) return
     setUploading(true)
-    const formData = new FormData()
-    Array.from(files).forEach(f => formData.append('photos', f))
 
     try {
+      const formData = new FormData()
+      Array.from(files).forEach(f => formData.append('photos', f))
+
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -83,20 +83,43 @@ export default function ProjectForm({ token, isEdit = false }) {
       })
       if (res.ok) {
         const uploaded = await res.json()
-        setForm(prev => ({
-          ...prev,
-          photos: [
-            ...prev.photos,
-            ...uploaded.map((u, i) => ({
-              ...u,
-              isMain: prev.photos.length === 0 && i === 0,
-            })),
-          ],
-        }))
-        showToast(`${uploaded.length} photo${uploaded.length > 1 ? 's' : ''} ajoutée${uploaded.length > 1 ? 's' : ''}`)
+        if (Array.isArray(uploaded) && uploaded.length > 0) {
+          setForm(prev => ({
+            ...prev,
+            photos: [
+              ...prev.photos,
+              ...uploaded.map((u, i) => ({
+                ...u,
+                isMain: prev.photos.length === 0 && i === 0,
+              })),
+            ],
+          }))
+          showToast(`${uploaded.length} photo${uploaded.length > 1 ? 's' : ''} ajoutée${uploaded.length > 1 ? 's' : ''}`)
+          setUploading(false)
+          return
+        }
       }
+    } catch {}
+
+    // Fallback: convert to base64 Data URL (immune to server outages)
+    try {
+      const b64List = []
+      for (const file of Array.from(files)) {
+        const b64 = await fileToBase64(file)
+        b64List.push({
+          filename: file.name,
+          url: b64,
+          isMain: form.photos.length === 0 && b64List.length === 0,
+          isStatic: false,
+        })
+      }
+      setForm(prev => ({
+        ...prev,
+        photos: [...prev.photos, ...b64List],
+      }))
+      showToast(`${b64List.length} photo${b64List.length > 1 ? 's' : ''} ajoutée${b64List.length > 1 ? 's' : ''}`)
     } catch (err) {
-      showToast('Erreur lors de l\'upload')
+      showToast('Erreur lors de la lecture des photos')
     } finally {
       setUploading(false)
     }
@@ -144,23 +167,12 @@ export default function ProjectForm({ token, isEdit = false }) {
     setSaving(true)
 
     try {
-      const url = isEdit ? `/api/admin/projects/${id}` : '/api/admin/projects'
-      const method = isEdit ? 'PUT' : 'POST'
-      // Clean photos for storage (remove url field)
-      const cleanPhotos = form.photos.map(({ url, ...rest }) => rest)
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ ...form, photos: cleanPhotos }),
-      })
-
-      if (res.ok) {
-        showToast(isEdit ? 'Projet modifié !' : 'Projet créé !')
+      const saved = await saveAdminProject(form, token, isEdit, id)
+      if (saved) {
+        showToast(isEdit ? 'Projet modifié avec succès !' : 'Projet créé avec succès !')
         setTimeout(() => navigate('/admin'), 500)
+      } else {
+        showToast('Erreur lors de la sauvegarde')
       }
     } catch (err) {
       showToast('Erreur lors de la sauvegarde')

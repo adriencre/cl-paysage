@@ -228,6 +228,7 @@ router.put('/admin/settings', authMiddleware, async (req, res) => {
 
 app.use('/api', router)
 app.use('/.netlify/functions/api', router)
+app.use('/', router)
 
 // Production static file serving if not in serverless
 if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {

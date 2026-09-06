@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { fetchAdminProjects, deleteAdminProject, saveAdminProject } from '../lib/dataSync'
 import './Dashboard.css'
 
 export default function Dashboard({ token }) {
@@ -7,51 +8,24 @@ export default function Dashboard({ token }) {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
-  const fetchProjects = async () => {
-    try {
-      const res = await fetch('/api/admin/projects', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        setProjects(await res.json())
-      }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+  const loadProjects = async () => {
+    setLoading(true)
+    const data = await fetchAdminProjects(token)
+    setProjects(data)
+    setLoading(false)
   }
 
-  useEffect(() => { fetchProjects() }, [])
+  useEffect(() => { loadProjects() }, [])
 
   const handleDelete = async (id, title) => {
     if (!window.confirm(`Supprimer le projet "${title}" ? Cette action est irréversible.`)) return
-
-    try {
-      const res = await fetch(`/api/admin/projects/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) fetchProjects()
-    } catch (err) {
-      console.error(err)
-    }
+    await deleteAdminProject(id, token)
+    loadProjects()
   }
 
   const togglePublish = async (project) => {
-    try {
-      await fetch(`/api/admin/projects/${project.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ published: !project.published }),
-      })
-      fetchProjects()
-    } catch (err) {
-      console.error(err)
-    }
+    await saveAdminProject({ ...project, published: !project.published }, token, true, project.id)
+    loadProjects()
   }
 
   const published = projects.filter(p => p.published)
@@ -93,7 +67,8 @@ export default function Dashboard({ token }) {
       ) : (
         <div className="dashboard-list">
           {projects.map((p) => {
-            const mainPhoto = p.photos.find(ph => ph.isMain) || p.photos[0]
+            const photos = p.photos || []
+            const mainPhoto = photos.find(ph => ph.isMain) || photos[0]
             return (
               <div key={p.id} className="dashboard-item">
                 {mainPhoto ? (

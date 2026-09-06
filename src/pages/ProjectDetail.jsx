@@ -55,25 +55,50 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     setLoading(true)
+
+    const findInList = (list) => {
+      const p = list.find(proj => proj.id === id)
+      if (!p) return null
+      const enriched = {
+        ...p,
+        photos: (p.photos || []).map(ph => ({
+          ...ph,
+          url: ph.url || (ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}`)
+        })),
+      }
+      const published = list.filter(item => item.published !== false)
+      const idx = published.findIndex(item => item.id === id)
+      const prev = idx > 0 ? { id: published[idx - 1].id, title: published[idx - 1].title } : null
+      const next = idx < published.length - 1 ? { id: published[idx + 1].id, title: published[idx + 1].title } : null
+      return { project: enriched, prev, next }
+    }
+
+    // 1. Check local storage cache
+    const saved = localStorage.getItem('cl_projects')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        const localFound = findInList(parsed)
+        if (localFound) {
+          setData(localFound)
+          setLoading(false)
+        }
+      } catch {}
+    }
+
+    // 2. Fetch from server
     fetch(`/api/projects/${id}`)
       .then(r => {
         if (!r.ok) throw new Error('Not found')
         return r.json()
       })
-      .then(d => setData(d))
+      .then(d => {
+        if (d && d.project) setData(d)
+      })
       .catch(() => {
-        const found = defaultProjects.find(p => p.id === id)
-        if (found) {
-          const enriched = {
-            ...found,
-            photos: found.photos.map(ph => ({ ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` })),
-          }
-          const idx = defaultProjects.findIndex(p => p.id === id)
-          const prev = idx > 0 ? { id: defaultProjects[idx - 1].id, title: defaultProjects[idx - 1].title } : null
-          const next = idx < defaultProjects.length - 1 ? { id: defaultProjects[idx + 1].id, title: defaultProjects[idx + 1].title } : null
-          setData({ project: enriched, prev, next })
-        } else {
-          setData(null)
+        if (!saved) {
+          const defFound = findInList(defaultProjects)
+          setData(defFound)
         }
       })
       .finally(() => setLoading(false))
