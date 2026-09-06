@@ -1,54 +1,48 @@
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
-import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { v4 as uuidv4 } from 'uuid'
 import { login, authMiddleware } from './auth.js'
-import { upload, deleteFile } from './uploads.js'
+import { upload } from './uploads.js'
+import {
+  getProjects,
+  saveProjects,
+  getSettings,
+  saveSettings,
+  savePhoto,
+  getPhoto,
+  deletePhoto
+} from './storage.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = process.env.PORT || 3001
-
-// Paths
-const dataDir = path.join(__dirname, '..', 'data')
-const projectsFile = path.join(dataDir, 'projects.json')
-const settingsFile = path.join(dataDir, 'settings.json')
 const publicDir = path.join(__dirname, '..', 'public')
 
 // Middleware
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '25mb' }))
+app.use(express.urlencoded({ extended: true, limit: '25mb' }))
 app.use('/uploads', express.static(path.join(publicDir, 'uploads')))
 
-// --- Helpers ---
-function readJSON(filepath) {
-  return JSON.parse(fs.readFileSync(filepath, 'utf-8'))
+function formatPhoto(photo) {
+  if (photo.isStatic) return { ...photo, url: `/images/${photo.filename}` }
+  return { ...photo, url: photo.url || `/api/photos/${photo.filename}` }
 }
 
-function writeJSON(filepath, data) {
-  fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8')
-}
-
-function getPhotoUrl(photo) {
-  if (photo.isStatic) return `/images/${photo.filename}`
-  return `/uploads/${photo.filename}`
-}
-
-// ===========================
-// PUBLIC API
-// ===========================
+// Router to support both /api and /.netlify/functions/api
+const router = express.Router()
 
 // Get all published projects
-app.get('/api/projects', (req, res) => {
+router.get('/projects', async (req, res) => {
   try {
-    const projects = readJSON(projectsFile)
+    const projects = await getProjects()
     const published = projects
       .filter(p => p.published)
       .map(p => ({
         ...p,
-        photos: p.photos.map(ph => ({ ...ph, url: getPhotoUrl(ph) })),
+        photos: (p.photos || []).map(formatPhoto),
       }))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     res.json(published)
@@ -57,19 +51,18 @@ app.get('/api/projects', (req, res) => {
   }
 })
 
-// Get a single project by id
-app.get('/api/projects/:id', (req, res) => {
+// Get a single project
+router.get('/projects/:id', async (req, res) => {
   try {
-    const projects = readJSON(projectsFile)
+    const projects = await getProjects()
     const project = projects.find(p => p.id === req.params.id)
     if (!project) return res.status(404).json({ error: 'Projet non trouvé' })
-    
+
     const enriched = {
       ...project,
-      photos: project.photos.map(ph => ({ ...ph, url: getPhotoUrl(ph) })),
+      photos: (project.photos || []).map(formatPhoto),
     }
-    
-    // Get prev/next published projects for navigation
+
     const published = projects
       .filter(p => p.published)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -83,21 +76,30 @@ app.get('/api/projects/:id', (req, res) => {
   }
 })
 
-// Get settings
-app.get('/api/settings', (req, res) => {
+// Serve photo blob
+router.get('/photos/:filename', async (req, res) => {
   try {
-    res.json(readJSON(settingsFile))
+    const photo = await getPhoto(req.params.filename)
+    if (!photo) return res.status(404).send('Photo non trouvée')
+    res.setHeader('Content-Type', photo.contentType || 'image/jpeg')
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.send(photo.buffer)
+  } catch (err) {
+    res.status(500).send('Erreur')
+  }
+})
+
+// Get settings
+router.get('/settings', async (req, res) => {
+  try {
+    res.json(await getSettings())
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
 
-// ===========================
-// ADMIN API
-// ===========================
-
 // Login
-app.post('/api/admin/login', (req, res) => {
+router.post('/admin/login', (req, res) => {
   const { password } = req.body
   const token = login(password)
   if (token) {
@@ -107,27 +109,26 @@ app.post('/api/admin/login', (req, res) => {
   }
 })
 
-// --- Protected routes ---
-
-// Get ALL projects (including drafts) for admin
-app.get('/api/admin/projects', authMiddleware, (req, res) => {
+// Get all admin projects
+router.get('/admin/projects', authMiddleware, async (req, res) => {
   try {
-    const projects = readJSON(projectsFile)
+    const projects = await getProjects()
+    const mapped = projects
       .map(p => ({
         ...p,
-        photos: p.photos.map(ph => ({ ...ph, url: getPhotoUrl(ph) })),
+        photos: (p.photos || []).map(formatPhoto),
       }))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    res.json(projects)
+    res.json(mapped)
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
 
 // Create project
-app.post('/api/admin/projects', authMiddleware, (req, res) => {
+router.post('/admin/projects', authMiddleware, async (req, res) => {
   try {
-    const projects = readJSON(projectsFile)
+    const projects = await getProjects()
     const newProject = {
       id: uuidv4(),
       title: req.body.title || 'Sans titre',
@@ -139,106 +140,97 @@ app.post('/api/admin/projects', authMiddleware, (req, res) => {
       socialLinks: req.body.socialLinks || { instagram: '', facebook: '', pinterest: '', tiktok: '' },
       published: req.body.published ?? false,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
     projects.push(newProject)
-    writeJSON(projectsFile, projects)
-    res.status(201).json({
-      ...newProject,
-      photos: newProject.photos.map(ph => ({ ...ph, url: getPhotoUrl(ph) })),
-    })
+    await saveProjects(projects)
+    res.status(201).json(newProject)
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
 
 // Update project
-app.put('/api/admin/projects/:id', authMiddleware, (req, res) => {
+router.put('/admin/projects/:id', authMiddleware, async (req, res) => {
   try {
-    const projects = readJSON(projectsFile)
+    const projects = await getProjects()
     const idx = projects.findIndex(p => p.id === req.params.id)
     if (idx === -1) return res.status(404).json({ error: 'Projet non trouvé' })
 
     const updated = {
       ...projects[idx],
-      title: req.body.title ?? projects[idx].title,
-      description: req.body.description ?? projects[idx].description,
-      category: req.body.category ?? projects[idx].category,
-      location: req.body.location ?? projects[idx].location,
-      date: req.body.date ?? projects[idx].date,
-      photos: req.body.photos ?? projects[idx].photos,
-      socialLinks: req.body.socialLinks ?? projects[idx].socialLinks,
-      published: req.body.published ?? projects[idx].published,
+      ...req.body,
+      id: projects[idx].id,
+      updatedAt: new Date().toISOString(),
     }
     projects[idx] = updated
-    writeJSON(projectsFile, projects)
-    res.json({
-      ...updated,
-      photos: updated.photos.map(ph => ({ ...ph, url: getPhotoUrl(ph) })),
-    })
-  } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' })
-  }
-})
-
-// Delete project
-app.delete('/api/admin/projects/:id', authMiddleware, (req, res) => {
-  try {
-    const projects = readJSON(projectsFile)
-    const project = projects.find(p => p.id === req.params.id)
-    if (!project) return res.status(404).json({ error: 'Projet non trouvé' })
-
-    // Delete uploaded photos (not static ones)
-    project.photos.forEach(ph => {
-      if (!ph.isStatic) deleteFile(ph.filename)
-    })
-
-    const filtered = projects.filter(p => p.id !== req.params.id)
-    writeJSON(projectsFile, filtered)
-    res.json({ success: true })
-  } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' })
-  }
-})
-
-// Upload images
-app.post('/api/admin/upload', authMiddleware, upload.array('photos', 20), (req, res) => {
-  try {
-    const files = req.files.map(f => ({
-      filename: f.filename,
-      url: `/uploads/${f.filename}`,
-      isMain: false,
-      isStatic: false,
-    }))
-    res.json(files)
-  } catch (err) {
-    res.status(500).json({ error: 'Erreur lors de l\'upload' })
-  }
-})
-
-// Delete a single uploaded image
-app.delete('/api/admin/upload/:filename', authMiddleware, (req, res) => {
-  const success = deleteFile(req.params.filename)
-  if (success) {
-    res.json({ success: true })
-  } else {
-    res.status(404).json({ error: 'Fichier non trouvé' })
-  }
-})
-
-// Update settings
-app.put('/api/admin/settings', authMiddleware, (req, res) => {
-  try {
-    const current = readJSON(settingsFile)
-    const updated = { ...current, ...req.body }
-    writeJSON(settingsFile, updated)
+    await saveProjects(projects)
     res.json(updated)
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
 
-// --- Production: serve Vite build ---
-if (process.env.NODE_ENV === 'production') {
+// Delete project
+router.delete('/admin/projects/:id', authMiddleware, async (req, res) => {
+  try {
+    const projects = await getProjects()
+    const project = projects.find(p => p.id === req.params.id)
+    if (!project) return res.status(404).json({ error: 'Projet non trouvé' })
+
+    for (const ph of project.photos || []) {
+      if (!ph.isStatic && ph.filename) {
+        await deletePhoto(ph.filename)
+      }
+    }
+
+    const filtered = projects.filter(p => p.id !== req.params.id)
+    await saveProjects(filtered)
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// Upload photos
+router.post('/admin/upload', authMiddleware, upload.array('photos', 20), async (req, res) => {
+  try {
+    const results = []
+    for (const file of req.files || []) {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg'
+      const filename = uuidv4() + ext
+      const url = await savePhoto(filename, file.buffer, file.mimetype)
+      results.push({
+        filename,
+        url,
+        isMain: false,
+        isStatic: false,
+      })
+    }
+    res.json(results)
+  } catch (err) {
+    console.error('Upload error:', err)
+    res.status(500).json({ error: 'Erreur upload' })
+  }
+})
+
+// Update settings
+router.put('/admin/settings', authMiddleware, async (req, res) => {
+  try {
+    const current = await getSettings()
+    const updated = { ...current, ...req.body }
+    await saveSettings(updated)
+    res.json(updated)
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+app.use('/api', router)
+app.use('/.netlify/functions/api', router)
+
+// Production static file serving if not in serverless
+if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
   const distDir = path.join(__dirname, '..', 'dist')
   app.use(express.static(distDir))
   app.get('*', (req, res) => {
@@ -246,6 +238,11 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
-app.listen(PORT, () => {
-  console.log(`[API] Serveur démarré sur http://localhost:${PORT}`)
-})
+// Only listen when run directly (not serverless)
+if (!process.env.NETLIFY) {
+  app.listen(PORT, () => {
+    console.log(`[API] Serveur démarré sur http://localhost:${PORT}`)
+  })
+}
+
+export default app
