@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { fetchAdminSettings, saveAdminSettings } from '../lib/dataSync'
 import './Settings.css'
 
 export default function Settings({ token }) {
@@ -12,12 +13,30 @@ export default function Settings({ token }) {
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [toast, setToast] = useState('')
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3500)
+  }
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.json())
-      .then(data => setForm(prev => ({ ...prev, ...data })))
-  }, [])
+    fetchAdminSettings(token)
+      .then(data => {
+        if (data) {
+          setForm(prev => ({
+            ...prev,
+            phone: data.phone ?? '',
+            email: data.email ?? '',
+            address: data.address ?? '',
+            hours: data.hours ?? '',
+            siteDescription: data.siteDescription ?? '',
+            socialLinks: { ...(prev.socialLinks || {}), ...(data.socialLinks || {}) },
+          }))
+        }
+      })
+      .catch(err => console.error(err))
+  }, [token])
 
   const updateField = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -36,20 +55,17 @@ export default function Settings({ token }) {
     setSaved(false)
 
     try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      })
-      if (res.ok) {
+      const result = await saveAdminSettings(form, token)
+      if (result.success) {
         setSaved(true)
+        showToast(result.isAuthError ? 'Paramètres sauvegardés dans votre navigateur' : 'Paramètres enregistrés avec succès !')
         setTimeout(() => setSaved(false), 3000)
+      } else {
+        showToast('Erreur lors de la sauvegarde')
       }
     } catch (err) {
       console.error(err)
+      showToast('Erreur lors de la sauvegarde')
     } finally {
       setSaving(false)
     }
@@ -173,10 +189,12 @@ export default function Settings({ token }) {
 
         <div className="form-actions">
           <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
+            {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
           </button>
         </div>
       </form>
+
+      {toast && <div className="form-toast">{toast}</div>}
     </div>
   )
 }

@@ -16,27 +16,33 @@ export function safeSetLocalStorage(key, value) {
     localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
     return true
   } catch (e) {
-    console.warn(`[Storage] Quota error on ${key}, trimming storage:`, e.message)
+    console.warn(`[Storage] Quota error on ${key}, attempting storage cleanup:`, e.message)
     try {
-      if (key === 'cl_projects' && Array.isArray(value)) {
-        // Keep full data for recent projects, trim heavy data for very old projects
-        const trimmed = value.map((p, idx) => {
-          if (idx < 2) return p
-          return {
-            ...p,
-            photos: (p.photos || []).map(ph => {
-              if (ph.url && ph.url.startsWith('data:') && ph.url.length > 3000) {
-                return { ...ph, url: ph.url.slice(0, 3000) }
-              }
-              return ph
-            })
-          }
-        })
-        localStorage.setItem(key, JSON.stringify(trimmed))
-        return true
+      // Free space by trimming base64 URLs from cl_projects
+      const projRaw = localStorage.getItem('cl_projects')
+      if (projRaw) {
+        const parsed = JSON.parse(projRaw)
+        if (Array.isArray(parsed)) {
+          const trimmed = parsed.map((p, idx) => {
+            if (idx === 0) return p
+            return {
+              ...p,
+              photos: (p.photos || []).map(ph => {
+                if (ph.url && ph.url.startsWith('data:') && ph.url.length > 2000) {
+                  return { ...ph, url: ph.url.slice(0, 2000) }
+                }
+                return ph
+              })
+            }
+          })
+          localStorage.setItem('cl_projects', JSON.stringify(trimmed))
+        }
       }
-    } catch {}
-    return false
+      localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
+      return true
+    } catch {
+      return false
+    }
   }
 }
 
@@ -95,6 +101,9 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
     if (idx !== -1) {
       updatedList[idx] = { ...updatedList[idx], ...projectData }
       result = updatedList[idx]
+    } else {
+      updatedList.unshift({ ...projectData, id })
+      result = { ...projectData, id }
     }
   } else {
     const newProj = result || {
@@ -128,40 +137,85 @@ export async function deleteAdminProject(id, token) {
 
 // --- Settings ---
 export async function fetchAdminSettings(token) {
+  let cached = null
+  const saved = localStorage.getItem('cl_settings')
+  if (saved) {
+    try { cached = JSON.parse(saved) } catch {}
+  }
+
   try {
     const res = await fetch('/api/settings')
     if (res.ok) {
       const data = await res.json()
-      if (data) {
-        safeSetLocalStorage('cl_settings', data)
-        return data
+      if (data && typeof data === 'object') {
+        const merged = {
+          ...defaultSettings,
+          ...cached,
+          ...data,
+          branding: { ...(defaultSettings.branding || {}), ...(cached?.branding || {}), ...(data.branding || {}) },
+          hero: { ...(defaultSettings.hero || {}), ...(cached?.hero || {}), ...(data.hero || {}) },
+          socialLinks: { ...(defaultSettings.socialLinks || {}), ...(cached?.socialLinks || {}), ...(data.socialLinks || {}) },
+        }
+        safeSetLocalStorage('cl_settings', merged)
+        return merged
       }
     }
   } catch (err) {
     console.warn('[Sync] Backend offline, loading settings from browser cache')
   }
 
-  const saved = localStorage.getItem('cl_settings')
-  if (saved) {
-    try { return JSON.parse(saved) } catch {}
-  }
-  return defaultSettings
+  return cached || defaultSettings
 }
 
 export async function saveAdminSettings(settingsData, token) {
+  // Always get existing settings to perform a safe deep merge
+  const current = await fetchAdminSettings(token)
+  const merged = {
+    ...current,
+    ...settingsData,
+    branding: {
+      ...(current.branding || {}),
+      ...(settingsData.branding || {}),
+    },
+    hero: {
+      ...(current.hero || {}),
+      ...(settingsData.hero || {}),
+    },
+    socialLinks: {
+      ...(current.socialLinks || {}),
+      ...(settingsData.socialLinks || {}),
+    },
+  }
+
+  let serverSuccess = false
+  let isAuthError = false
+
   try {
-    await fetch('/api/admin/settings', {
+    const res = await fetch('/api/admin/settings', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(settingsData),
+      body: JSON.stringify(merged),
     })
+    if (res.ok) {
+      serverSuccess = true
+    } else if (res.status === 401) {
+      isAuthError = true
+      console.warn('[Sync] Token invalid or expired during save')
+    }
   } catch (err) {
-    console.warn('[Sync] Backend offline, saving settings to browser storage')
+    console.warn('[Sync] Backend offline, saving settings to local storage')
   }
 
-  safeSetLocalStorage('cl_settings', settingsData)
-  return settingsData
+  // Always persist to local browser storage so the site updates immediately
+  safeSetLocalStorage('cl_settings', merged)
+
+  // Broadcast settings change to all active components
+  try {
+    window.dispatchEvent(new CustomEvent('cl_settings_updated', { detail: merged }))
+  } catch {}
+
+  return { success: true, serverSuccess, isAuthError, data: merged }
 }

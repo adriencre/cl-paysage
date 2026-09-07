@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import FadeIn from '../components/FadeIn'
+import defaultSettings from '../../data/settings.json'
 import './Contact.css'
 
 export default function Contact() {
@@ -7,6 +8,29 @@ export default function Contact() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', type: '', message: '',
   })
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('cl_settings')
+    if (saved) {
+      try { return { ...defaultSettings, ...JSON.parse(saved) } } catch {}
+    }
+    return defaultSettings
+  })
+
+  useEffect(() => {
+    const handleUpdate = (e) => {
+      if (e.detail) setSettings(prev => ({ ...prev, ...e.detail }))
+    }
+    window.addEventListener('cl_settings_updated', handleUpdate)
+
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => {
+        if (d && typeof d === 'object') setSettings(prev => ({ ...prev, ...d }))
+      })
+      .catch(() => {})
+
+    return () => window.removeEventListener('cl_settings_updated', handleUpdate)
+  }, [])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -141,7 +165,9 @@ export default function Contact() {
                     </svg>
                     <div>
                       <h4>Téléphone</h4>
-                      <a href="tel:+33600000000">06 00 00 00 00</a>
+                      <a href={`tel:${(settings.phone || '06 00 00 00 00').replace(/[^0-9+]/g, '')}`}>
+                        {settings.phone || '06 00 00 00 00'}
+                      </a>
                     </div>
                   </div>
 
@@ -152,7 +178,9 @@ export default function Contact() {
                     </svg>
                     <div>
                       <h4>Email</h4>
-                      <a href="mailto:contact@clpaysage.fr">contact@clpaysage.fr</a>
+                      <a href={`mailto:${settings.email || 'contact@clpaysage.fr'}`}>
+                        {settings.email || 'contact@clpaysage.fr'}
+                      </a>
                     </div>
                   </div>
 
@@ -163,7 +191,7 @@ export default function Contact() {
                     </svg>
                     <div>
                       <h4>Zone d'intervention</h4>
-                      <p>Toute la région et alentours</p>
+                      <p>{settings.address || 'Toute la région et alentours'}</p>
                     </div>
                   </div>
 
@@ -174,8 +202,9 @@ export default function Contact() {
                     </svg>
                     <div>
                       <h4>Horaires</h4>
-                      <p>Lun – Ven : 8h – 18h</p>
-                      <p>Sam : sur rendez-vous</p>
+                      {(settings.hours || 'Lun – Ven : 8h – 18h\nSam : sur rendez-vous').split('\n').map((line, idx) => (
+                        <p key={idx}>{line}</p>
+                      ))}
                     </div>
                   </div>
                 </div>

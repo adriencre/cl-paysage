@@ -52,6 +52,19 @@ export default function Home() {
         }
       })
       .catch(() => {})
+
+    const handleUpdate = (e) => {
+      if (e.detail) {
+        setSettings(prev => ({
+          ...prev,
+          ...e.detail,
+          hero: { ...prev.hero, ...(e.detail.hero || {}) },
+        }))
+      }
+    }
+    window.addEventListener('cl_settings_updated', handleUpdate)
+
+    return () => window.removeEventListener('cl_settings_updated', handleUpdate)
   }, [])
 
   const hero = settings.hero || defaultSettings.hero

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { compressImage } from '../lib/imageCompressor'
+import { fetchAdminSettings, saveAdminSettings } from '../lib/dataSync'
 import './Appearance.css'
 
 export default function Appearance({ token }) {
@@ -30,18 +31,19 @@ export default function Appearance({ token }) {
   const logoInputRef = useRef(null)
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.json())
+    fetchAdminSettings(token)
       .then(data => {
-        setForm(prev => ({
-          ...prev,
-          branding: { ...prev.branding, ...(data.branding || {}) },
-          hero: { ...prev.hero, ...(data.hero || {}) },
-        }))
+        if (data) {
+          setForm(prev => ({
+            ...prev,
+            branding: { ...prev.branding, ...(data.branding || {}) },
+            hero: { ...prev.hero, ...(data.hero || {}) },
+          }))
+        }
       })
       .catch(err => console.error('Error loading settings:', err))
       .finally(() => setLoading(false))
-  }, [])
+  }, [token])
 
   const showToast = (msg) => {
     setToast(msg)
@@ -77,9 +79,7 @@ export default function Appearance({ token }) {
       const comp = await compressImage(file, isHero ? 1920 : 600, isHero ? 1200 : 600, 0.85)
       compressedFile = comp.file
       localDataUrl = comp.dataUrl
-    } catch {}
 
-    try {
       const formData = new FormData()
       formData.append('photos', compressedFile)
 
@@ -88,9 +88,10 @@ export default function Appearance({ token }) {
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       })
+
       if (res.ok) {
         const uploaded = await res.json()
-        if (uploaded && uploaded[0]) {
+        if (uploaded && uploaded[0] && uploaded[0].url) {
           const url = uploaded[0].url
           if (isHero) {
             updateHero('bgImage', url)
@@ -102,23 +103,31 @@ export default function Appearance({ token }) {
           return
         }
       }
-    } catch {}
 
-    // Fallback: use compressed base64 dataUrl directly
-    if (localDataUrl) {
-      if (isHero) {
-        updateHero('bgImage', localDataUrl)
-        showToast('Photo de fond prête !')
+      // Fallback: use compressed base64 dataUrl directly if upload failed or offline
+      if (localDataUrl) {
+        if (isHero) {
+          updateHero('bgImage', localDataUrl)
+          showToast('Photo de fond prête !')
+        } else {
+          updateBranding('logoUrl', localDataUrl)
+          showToast('Logo prêt !')
+        }
       } else {
-        updateBranding('logoUrl', localDataUrl)
-        showToast('Logo prêt !')
+        showToast('Erreur lors du traitement du fichier')
       }
-    } else {
-      showToast('Erreur lors du traitement du fichier')
+    } catch {
+      if (localDataUrl) {
+        if (isHero) updateHero('bgImage', localDataUrl)
+        else updateBranding('logoUrl', localDataUrl)
+        showToast('Photo prête (mode hors-ligne)')
+      } else {
+        showToast('Erreur lors du traitement du fichier')
+      }
+    } finally {
+      if (isHero) setUploadingHero(false)
+      else setUploadingLogo(false)
     }
-
-    if (isHero) setUploadingHero(false)
-    else setUploadingLogo(false)
   }
 
   const handleSubmit = async (e) => {
@@ -126,17 +135,13 @@ export default function Appearance({ token }) {
     setSaving(true)
 
     try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      })
-
-      if (res.ok) {
-        showToast('Apparence mise à jour avec succès !')
+      const result = await saveAdminSettings(form, token)
+      if (result.success) {
+        if (result.isAuthError) {
+          showToast('Modifications enregistrées localement (session expirée)')
+        } else {
+          showToast('Apparence mise à jour avec succès !')
+        }
       } else {
         showToast('Erreur lors de la sauvegarde')
       }

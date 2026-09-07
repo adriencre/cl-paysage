@@ -187,11 +187,12 @@ export default function ProjectForm({ token, isEdit = false }) {
       const saved = await saveAdminProject(form, token, isEdit, id)
       if (saved) {
         showToast(isEdit ? 'Projet modifié avec succès !' : 'Projet créé avec succès !')
-        setTimeout(() => navigate('/admin'), 500)
+        setTimeout(() => navigate('/admin'), 600)
       } else {
-        showToast('Erreur lors de la sauvegarde')
+        showToast('Erreur lors de la sauvegarde du projet')
       }
     } catch (err) {
+      console.error(err)
       showToast('Erreur lors de la sauvegarde')
     } finally {
       setSaving(false)

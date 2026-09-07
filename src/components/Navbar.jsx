@@ -13,21 +13,37 @@ const links = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [branding, setBranding] = useState(defaultSettings.branding || {
-    brandName: 'CL',
-    brandAccent: 'Paysage',
-    brandSub: 'Paysagiste Concepteur',
-    logoUrl: '/images/logo.png',
+  const [branding, setBranding] = useState(() => {
+    const saved = localStorage.getItem('cl_settings')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed && parsed.branding) return parsed.branding
+      } catch {}
+    }
+    return defaultSettings.branding || {
+      brandName: 'CL',
+      brandAccent: 'Paysage',
+      brandSub: 'Paysagiste Concepteur',
+      logoUrl: '/images/logo.png',
+    }
   })
   const location = useLocation()
 
   useEffect(() => {
+    const handleUpdate = (e) => {
+      if (e.detail && e.detail.branding) setBranding(e.detail.branding)
+    }
+    window.addEventListener('cl_settings_updated', handleUpdate)
+
     fetch('/api/settings')
       .then(r => r.json())
       .then(d => {
         if (d && d.branding) setBranding(d.branding)
       })
       .catch(() => {})
+
+    return () => window.removeEventListener('cl_settings_updated', handleUpdate)
   }, [])
 
   useEffect(() => {
