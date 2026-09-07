@@ -11,6 +11,35 @@ export function fileToBase64(file) {
   })
 }
 
+export function safeSetLocalStorage(key, value) {
+  try {
+    localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
+    return true
+  } catch (e) {
+    console.warn(`[Storage] Quota error on ${key}, trimming storage:`, e.message)
+    try {
+      if (key === 'cl_projects' && Array.isArray(value)) {
+        // Keep full data for recent projects, trim heavy data for very old projects
+        const trimmed = value.map((p, idx) => {
+          if (idx < 2) return p
+          return {
+            ...p,
+            photos: (p.photos || []).map(ph => {
+              if (ph.url && ph.url.startsWith('data:') && ph.url.length > 3000) {
+                return { ...ph, url: ph.url.slice(0, 3000) }
+              }
+              return ph
+            })
+          }
+        })
+        localStorage.setItem(key, JSON.stringify(trimmed))
+        return true
+      }
+    } catch {}
+    return false
+  }
+}
+
 // --- Projects ---
 export async function fetchAdminProjects(token) {
   try {
@@ -20,7 +49,7 @@ export async function fetchAdminProjects(token) {
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
-        localStorage.setItem('cl_projects', JSON.stringify(data))
+        safeSetLocalStorage('cl_projects', data)
         return data
       }
     }
@@ -77,7 +106,7 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
     result = newProj
   }
 
-  localStorage.setItem('cl_projects', JSON.stringify(updatedList))
+  safeSetLocalStorage('cl_projects', updatedList)
   return result
 }
 
@@ -93,7 +122,7 @@ export async function deleteAdminProject(id, token) {
 
   const current = await fetchAdminProjects(token)
   const filtered = current.filter(p => p.id !== id)
-  localStorage.setItem('cl_projects', JSON.stringify(filtered))
+  safeSetLocalStorage('cl_projects', filtered)
   return true
 }
 
@@ -104,7 +133,7 @@ export async function fetchAdminSettings(token) {
     if (res.ok) {
       const data = await res.json()
       if (data) {
-        localStorage.setItem('cl_settings', JSON.stringify(data))
+        safeSetLocalStorage('cl_settings', data)
         return data
       }
     }
@@ -133,6 +162,6 @@ export async function saveAdminSettings(settingsData, token) {
     console.warn('[Sync] Backend offline, saving settings to browser storage')
   }
 
-  localStorage.setItem('cl_settings', JSON.stringify(settingsData))
+  safeSetLocalStorage('cl_settings', settingsData)
   return settingsData
 }

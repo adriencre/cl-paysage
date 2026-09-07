@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { compressImage } from '../lib/imageCompressor'
 import './Appearance.css'
 
 export default function Appearance({ token }) {
@@ -61,17 +62,27 @@ export default function Appearance({ token }) {
     }))
   }
 
-  // Upload file helper
+  // Upload file helper with mobile client-side compression
   const handleUpload = async (file, type) => {
     if (!file) return
     const isHero = type === 'hero'
     if (isHero) setUploadingHero(true)
     else setUploadingLogo(true)
+    showToast('Optimisation de la photo…')
 
-    const formData = new FormData()
-    formData.append('photos', file)
+    let compressedFile = file
+    let localDataUrl = null
 
     try {
+      const comp = await compressImage(file, isHero ? 1920 : 600, isHero ? 1200 : 600, 0.85)
+      compressedFile = comp.file
+      localDataUrl = comp.dataUrl
+    } catch {}
+
+    try {
+      const formData = new FormData()
+      formData.append('photos', compressedFile)
+
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -88,16 +99,26 @@ export default function Appearance({ token }) {
             updateBranding('logoUrl', url)
             showToast('Nouveau logo chargé !')
           }
+          return
         }
-      } else {
-        showToast('Erreur lors du téléversement')
       }
-    } catch {
-      showToast('Erreur de connexion au serveur')
-    } finally {
-      if (isHero) setUploadingHero(false)
-      else setUploadingLogo(false)
+    } catch {}
+
+    // Fallback: use compressed base64 dataUrl directly
+    if (localDataUrl) {
+      if (isHero) {
+        updateHero('bgImage', localDataUrl)
+        showToast('Photo de fond prête !')
+      } else {
+        updateBranding('logoUrl', localDataUrl)
+        showToast('Logo prêt !')
+      }
+    } else {
+      showToast('Erreur lors du traitement du fichier')
     }
+
+    if (isHero) setUploadingHero(false)
+    else setUploadingLogo(false)
   }
 
   const handleSubmit = async (e) => {
@@ -171,7 +192,7 @@ export default function Appearance({ token }) {
                   type="file"
                   ref={heroInputRef}
                   style={{ display: 'none' }}
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/*"
                   onChange={(e) => handleUpload(e.target.files[0], 'hero')}
                 />
                 <button
@@ -268,7 +289,7 @@ export default function Appearance({ token }) {
                   type="file"
                   ref={logoInputRef}
                   style={{ display: 'none' }}
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/*"
                   onChange={(e) => handleUpload(e.target.files[0], 'logo')}
                 />
                 <button

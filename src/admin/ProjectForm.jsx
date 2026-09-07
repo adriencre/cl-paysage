@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fetchAdminProjects, saveAdminProject, fileToBase64 } from '../lib/dataSync'
+import { compressImage } from '../lib/imageCompressor'
 import './ProjectForm.css'
 
 const CATEGORIES = [
@@ -67,48 +68,63 @@ export default function ProjectForm({ token, isEdit = false }) {
     }))
   }
 
-  // Photo upload
+  // Photo upload with client-side compression (crucial for mobile photos)
   const uploadFiles = async (files) => {
-    if (!files.length) return
+    if (!files || !files.length) return
     setUploading(true)
+    showToast('Optimisation des photos…')
 
     try {
-      const formData = new FormData()
-      Array.from(files).forEach(f => formData.append('photos', f))
-
-      const res = await fetch('/api/admin/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      })
-      if (res.ok) {
-        const uploaded = await res.json()
-        if (Array.isArray(uploaded) && uploaded.length > 0) {
-          setForm(prev => ({
-            ...prev,
-            photos: [
-              ...prev.photos,
-              ...uploaded.map((u, i) => ({
-                ...u,
-                isMain: prev.photos.length === 0 && i === 0,
-              })),
-            ],
-          }))
-          showToast(`${uploaded.length} photo${uploaded.length > 1 ? 's' : ''} ajoutée${uploaded.length > 1 ? 's' : ''}`)
-          setUploading(false)
-          return
+      // 1. Client-side compression for every photo (shrinks 10MB iPhone photos down to ~200KB)
+      const compressedList = []
+      for (const f of Array.from(files)) {
+        try {
+          const res = await compressImage(f)
+          compressedList.push(res)
+        } catch {
+          compressedList.push({ file: f, dataUrl: null })
         }
       }
-    } catch {}
 
-    // Fallback: convert to base64 Data URL (immune to server outages)
-    try {
+      // 2. Try server upload with compressed files
+      try {
+        const formData = new FormData()
+        compressedList.forEach(({ file }) => formData.append('photos', file))
+
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
+        if (res.ok) {
+          const uploaded = await res.json()
+          if (Array.isArray(uploaded) && uploaded.length > 0) {
+            setForm(prev => ({
+              ...prev,
+              photos: [
+                ...prev.photos,
+                ...uploaded.map((u, i) => ({
+                  ...u,
+                  isMain: prev.photos.length === 0 && i === 0,
+                })),
+              ],
+            }))
+            showToast(`${uploaded.length} photo${uploaded.length > 1 ? 's' : ''} ajoutée${uploaded.length > 1 ? 's' : ''}`)
+            setUploading(false)
+            return
+          }
+        }
+      } catch {
+        // Backend offline or timeout
+      }
+
+      // 3. Fallback: store lightweight compressed data URLs
       const b64List = []
-      for (const file of Array.from(files)) {
-        const b64 = await fileToBase64(file)
+      for (const item of compressedList) {
+        const url = item.dataUrl || (await fileToBase64(item.file))
         b64List.push({
-          filename: file.name,
-          url: b64,
+          filename: item.file.name,
+          url,
           isMain: form.photos.length === 0 && b64List.length === 0,
           isStatic: false,
         })
@@ -119,6 +135,7 @@ export default function ProjectForm({ token, isEdit = false }) {
       }))
       showToast(`${b64List.length} photo${b64List.length > 1 ? 's' : ''} ajoutée${b64List.length > 1 ? 's' : ''}`)
     } catch (err) {
+      console.error('Photo error:', err)
       showToast('Erreur lors de la lecture des photos')
     } finally {
       setUploading(false)
@@ -291,7 +308,7 @@ export default function ProjectForm({ token, isEdit = false }) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/*"
             multiple
             style={{ display: 'none' }}
             onChange={(e) => uploadFiles(e.target.files)}
