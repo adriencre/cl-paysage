@@ -9,112 +9,152 @@ const projectsFile = path.join(dataDir, 'projects.json')
 const settingsFile = path.join(dataDir, 'settings.json')
 const uploadsDir = path.join(__dirname, '..', 'public', 'uploads')
 
-function isNetlify() {
-  return !!process.env.NETLIFY
-}
+// In-memory cache for serverless warm execution
+let memoryProjects = null
+let memorySettings = null
+let memoryPhotos = new Map()
 
-function getDataStore() {
-  return getStore({ name: 'cl-paysage-data', consistency: 'strong' })
-}
-
-function getPhotoStore() {
-  return getStore({ name: 'cl-paysage-photos', consistency: 'strong' })
+function getSafeStore(storeName) {
+  try {
+    return getStore({ name: storeName, consistency: 'strong' })
+  } catch (err) {
+    return null
+  }
 }
 
 function readJSONFile(filepath) {
   try {
-    return JSON.parse(fs.readFileSync(filepath, 'utf-8'))
-  } catch {
-    return []
+    if (fs.existsSync(filepath)) {
+      return JSON.parse(fs.readFileSync(filepath, 'utf-8'))
+    }
+  } catch (err) {
+    console.warn(`[Storage] Could not read ${filepath}:`, err.message)
   }
+  return []
 }
 
 function writeJSONFile(filepath, data) {
-  fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8')
+  try {
+    fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8')
+  } catch (err) {
+    console.warn(`[Storage] Read-only environment, skipping write to ${filepath}`)
+  }
 }
 
 // --- Projects ---
 export async function getProjects() {
-  if (isNetlify()) {
+  const store = getSafeStore('cl-paysage-data')
+  if (store) {
     try {
-      const store = getDataStore()
       const data = await store.get('projects', { type: 'json' })
       if (data && Array.isArray(data)) return data
-      // Seed if not yet in store
-      const initial = readJSONFile(projectsFile)
-      await store.setJSON('projects', initial)
+      const initial = memoryProjects || readJSONFile(projectsFile)
+      await store.setJSON('projects', initial).catch(() => {})
       return initial
     } catch (err) {
-      console.error('[Storage Netlify] Error fetching projects:', err)
-      return readJSONFile(projectsFile)
+      console.warn('[Storage] Blobs get projects fallback:', err.message)
     }
   }
-  return readJSONFile(projectsFile)
+
+  if (memoryProjects) return memoryProjects
+  memoryProjects = readJSONFile(projectsFile)
+  return memoryProjects
 }
 
 export async function saveProjects(projects) {
-  if (isNetlify()) {
-    const store = getDataStore()
-    await store.setJSON('projects', projects)
-    return
+  memoryProjects = projects
+  const store = getSafeStore('cl-paysage-data')
+  if (store) {
+    try {
+      await store.setJSON('projects', projects)
+      return
+    } catch (err) {
+      console.warn('[Storage] Blobs save projects fallback:', err.message)
+    }
   }
   writeJSONFile(projectsFile, projects)
 }
 
 // --- Settings ---
 export async function getSettings() {
-  if (isNetlify()) {
+  const store = getSafeStore('cl-paysage-data')
+  if (store) {
     try {
-      const store = getDataStore()
       const data = await store.get('settings', { type: 'json' })
       if (data) return data
-      const initial = readJSONFile(settingsFile)
-      await store.setJSON('settings', initial)
+      const initial = memorySettings || readJSONFile(settingsFile)
+      await store.setJSON('settings', initial).catch(() => {})
       return initial
     } catch (err) {
-      console.error('[Storage Netlify] Error fetching settings:', err)
-      return readJSONFile(settingsFile)
+      console.warn('[Storage] Blobs get settings fallback:', err.message)
     }
   }
-  return readJSONFile(settingsFile)
+
+  if (memorySettings) return memorySettings
+  memorySettings = readJSONFile(settingsFile)
+  return memorySettings
 }
 
 export async function saveSettings(settings) {
-  if (isNetlify()) {
-    const store = getDataStore()
-    await store.setJSON('settings', settings)
-    return
+  memorySettings = settings
+  const store = getSafeStore('cl-paysage-data')
+  if (store) {
+    try {
+      await store.setJSON('settings', settings)
+      return
+    } catch (err) {
+      console.warn('[Storage] Blobs save settings fallback:', err.message)
+    }
   }
   writeJSONFile(settingsFile, settings)
 }
 
 // --- Photos ---
 export async function savePhoto(filename, buffer, mimetype = 'image/jpeg') {
-  if (isNetlify()) {
-    const photoStore = getPhotoStore()
-    await photoStore.set(filename, buffer, {
-      metadata: { contentType: mimetype }
-    })
-    return `/api/photos/${filename}`
+  memoryPhotos.set(filename, { buffer, contentType: mimetype })
+
+  const store = getSafeStore('cl-paysage-photos')
+  if (store) {
+    try {
+      await store.set(filename, buffer, {
+        metadata: { contentType: mimetype }
+      })
+      return `/api/photos/${filename}`
+    } catch (err) {
+      console.warn('[Storage] Blobs photo save fallback:', err.message)
+    }
   }
 
-  // Local filesystem
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true })
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true })
+    }
+    const destPath = path.join(uploadsDir, filename)
+    fs.writeFileSync(destPath, buffer)
+    return `/uploads/${filename}`
+  } catch {
+    // Read-only filesystem on serverless
+    return `/api/photos/${filename}`
   }
-  const destPath = path.join(uploadsDir, filename)
-  fs.writeFileSync(destPath, buffer)
-  return `/uploads/${filename}`
 }
 
 export async function getPhoto(filename) {
-  if (isNetlify()) {
-    const photoStore = getPhotoStore()
-    const { data, metadata } = await photoStore.getWithMetadata(filename, { type: 'arrayBuffer' })
-    if (!data) return null
-    return {
-      buffer: Buffer.from(data),
-      contentType: metadata?.contentType || 'image/jpeg'
+  if (memoryPhotos.has(filename)) {
+    return memoryPhotos.get(filename)
+  }
+
+  const store = getSafeStore('cl-paysage-photos')
+  if (store) {
+    try {
+      const { data, metadata } = await store.getWithMetadata(filename, { type: 'arrayBuffer' })
+      if (data) {
+        return {
+          buffer: Buffer.from(data),
+          contentType: metadata?.contentType || 'image/jpeg'
+        }
+      }
+    } catch (err) {
+      console.warn('[Storage] Blobs get photo fallback:', err.message)
     }
   }
 
@@ -129,18 +169,19 @@ export async function getPhoto(filename) {
 }
 
 export async function deletePhoto(filename) {
-  if (isNetlify()) {
+  memoryPhotos.delete(filename)
+  const store = getSafeStore('cl-paysage-photos')
+  if (store) {
     try {
-      const photoStore = getPhotoStore()
-      await photoStore.delete(filename)
+      await store.delete(filename)
+      return
     } catch (err) {
-      console.error('[Storage Netlify] Error deleting photo:', err)
+      console.warn('[Storage] Blobs delete photo fallback:', err.message)
     }
-    return
   }
 
   const localPath = path.join(uploadsDir, filename)
   if (fs.existsSync(localPath)) {
-    fs.unlinkSync(localPath)
+    try { fs.unlinkSync(localPath) } catch {}
   }
 }
