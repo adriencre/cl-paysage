@@ -26,7 +26,9 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Si la table existait déjà avec seulement "data", on ajoute toutes les colonnes manquantes
+-- Si la table existait déjà avec seulement "data", on retire la contrainte NOT NULL et on ajoute toutes les colonnes
+ALTER TABLE settings ALTER COLUMN data DROP NOT NULL;
+
 ALTER TABLE settings 
   ADD COLUMN IF NOT EXISTS phone TEXT,
   ADD COLUMN IF NOT EXISTS email TEXT,
@@ -49,7 +51,7 @@ ALTER TABLE settings
 INSERT INTO settings (
   id, phone, email, address, hours, site_description,
   hero_bg_image, hero_tagline, hero_title_line1, hero_title_line2, hero_description, hero_button_text,
-  brand_name, brand_accent, brand_sub, logo_url, social_links
+  brand_name, brand_accent, brand_sub, logo_url, social_links, data
 )
 VALUES (
   1,
@@ -68,7 +70,8 @@ VALUES (
   'Paysage',
   'Paysagiste Concepteur',
   '/images/logo.png',
-  '{"instagram": "", "facebook": "", "pinterest": "", "tiktok": ""}'::jsonb
+  '{"instagram": "", "facebook": "", "pinterest": "", "tiktok": ""}'::jsonb,
+  '{}'::jsonb
 )
 ON CONFLICT (id) DO UPDATE SET
   phone = COALESCE(settings.phone, EXCLUDED.phone),
