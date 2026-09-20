@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
 # Environment
 .env
 .env.*
