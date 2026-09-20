@@ -46,13 +46,16 @@ export async function universalHandler(arg1, context) {
       const respHeaders = new Headers()
       for (const [k, v] of Object.entries(result.headers || {})) {
         if (v !== undefined && v !== null) {
-          respHeaders.set(k, String(v))
+          const lk = k.toLowerCase()
+          if (lk !== 'transfer-encoding' && lk !== 'connection') {
+            respHeaders.set(k, String(v))
+          }
         }
       }
 
       const respBody = result.isBase64Encoded
         ? Buffer.from(result.body, 'base64')
-        : result.body
+        : (result.body || '')
 
       return new Response(respBody, {
         status: result.statusCode || 200,
@@ -61,7 +64,7 @@ export async function universalHandler(arg1, context) {
     }
 
     // Netlify Functions v1 / AWS Lambda event format
-    return await serverlessHandler(arg1, context)
+    return await serverlessHandler(arg1, context || {})
   } catch (err) {
     console.error('[Netlify Function API Error]:', err)
     if (typeof Response !== 'undefined' && (arg1 instanceof Request || (arg1 && arg1.url))) {
@@ -78,6 +81,5 @@ export async function universalHandler(arg1, context) {
   }
 }
 
-// Export both default (v2) and handler (v1) for seamless compatibility
 export default universalHandler
 export const handler = universalHandler

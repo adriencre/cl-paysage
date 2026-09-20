@@ -16,9 +16,21 @@ import {
   saveContactMessage
 } from './storage.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+function getProjectRootDir() {
+  if (process.env.LAMBDA_TASK_ROOT) {
+    return process.env.LAMBDA_TASK_ROOT
+  }
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta && import.meta.url) {
+      return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+    }
+  } catch {}
+  return process.cwd()
+}
+
+const rootDir = getProjectRootDir()
 const app = express()
-const publicDir = path.join(__dirname, '..', 'public')
+const publicDir = path.join(rootDir, 'public')
 
 // Middleware
 app.use(cors())

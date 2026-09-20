@@ -3,19 +3,45 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { getStore } from '@netlify/blobs'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const dataDir = path.join(__dirname, '..', 'data')
+function getProjectRootDir() {
+  if (process.env.LAMBDA_TASK_ROOT) {
+    return process.env.LAMBDA_TASK_ROOT
+  }
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta && import.meta.url) {
+      return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+    }
+  } catch {}
+  return process.cwd()
+}
+
+const rootDir = getProjectRootDir()
+const dataDir = path.join(rootDir, 'data')
 const projectsFile = path.join(dataDir, 'projects.json')
 const settingsFile = path.join(dataDir, 'settings.json')
-const uploadsDir = path.join(__dirname, '..', 'public', 'uploads')
+const uploadsDir = path.join(rootDir, 'public', 'uploads')
 
 // In-memory cache for serverless warm execution
 let memoryProjects = null
 let memorySettings = null
 let memoryPhotos = new Map()
 
+function withTimeout(promise, ms = 2500) {
+  let timeoutId
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`Blobs operation timed out after ${ms}ms`)), ms)
+  })
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId))
+}
+
 function getSafeStore(storeName) {
   try {
+    const isNetlify = Boolean(
+      process.env.NETLIFY ||
+      process.env.NETLIFY_BLOBS_CONTEXT ||
+      process.env.NETLIFY_SITE_ID
+    )
+    if (!isNetlify) return null
     return getStore({ name: storeName, consistency: 'strong' })
   } catch (err) {
     return null
@@ -25,7 +51,10 @@ function getSafeStore(storeName) {
 function readJSONFile(filepath, defaultValue = []) {
   try {
     if (fs.existsSync(filepath)) {
-      return JSON.parse(fs.readFileSync(filepath, 'utf-8'))
+      const content = fs.readFileSync(filepath, 'utf-8')
+      if (content && content.trim()) {
+        return JSON.parse(content)
+      }
     }
   } catch (err) {
     console.warn(`[Storage] Could not read ${filepath}:`, err.message)
@@ -35,9 +64,15 @@ function readJSONFile(filepath, defaultValue = []) {
 
 function writeJSONFile(filepath, data) {
   try {
+    const dir = path.dirname(filepath)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
     fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8')
+    return true
   } catch (err) {
-    console.warn(`[Storage] Read-only environment, skipping write to ${filepath}`)
+    console.warn(`[Storage] Read-only environment, skipping write to ${filepath}:`, err.message)
+    return false
   }
 }
 
@@ -46,10 +81,13 @@ export async function getProjects() {
   const store = getSafeStore('cl-paysage-data')
   if (store) {
     try {
-      const data = await store.get('projects', { type: 'json' })
-      if (data && Array.isArray(data)) return data
-      const initial = memoryProjects || readJSONFile(projectsFile)
-      await store.setJSON('projects', initial).catch(() => {})
+      const data = await withTimeout(store.get('projects', { type: 'json' }), 2500)
+      if (data && Array.isArray(data)) {
+        memoryProjects = data
+        return data
+      }
+      const initial = memoryProjects || readJSONFile(projectsFile, [])
+      await withTimeout(store.setJSON('projects', initial), 2500).catch(() => {})
       return initial
     } catch (err) {
       console.warn('[Storage] Blobs get projects fallback:', err.message)
@@ -57,28 +95,35 @@ export async function getProjects() {
   }
 
   if (memoryProjects) return memoryProjects
-  memoryProjects = readJSONFile(projectsFile)
+  memoryProjects = readJSONFile(projectsFile, [])
   return memoryProjects
 }
 
 export async function saveProjects(projects) {
   memoryProjects = projects
+  let persisted = false
+  let storageType = 'memory'
+
   const store = getSafeStore('cl-paysage-data')
   if (store) {
     try {
-      await store.setJSON('projects', projects)
-      return { persisted: true, storage: 'blobs' }
+      await withTimeout(store.setJSON('projects', projects), 3000)
+      persisted = true
+      storageType = 'blobs'
     } catch (err) {
       console.warn('[Storage] Blobs save projects fallback:', err.message)
     }
   }
+
   try {
-    writeJSONFile(projectsFile, projects)
-    if (fs.existsSync(projectsFile)) {
-      return { persisted: true, storage: 'filesystem' }
+    const written = writeJSONFile(projectsFile, projects)
+    if (written) {
+      persisted = true
+      if (storageType === 'memory') storageType = 'filesystem'
     }
   } catch {}
-  return { persisted: false, storage: 'memory' }
+
+  return { persisted, storage: storageType }
 }
 
 // --- Settings ---
@@ -86,10 +131,13 @@ export async function getSettings() {
   const store = getSafeStore('cl-paysage-data')
   if (store) {
     try {
-      const data = await store.get('settings', { type: 'json' })
-      if (data) return data
+      const data = await withTimeout(store.get('settings', { type: 'json' }), 2500)
+      if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+        memorySettings = data
+        return data
+      }
       const initial = memorySettings || readJSONFile(settingsFile, {})
-      await store.setJSON('settings', initial).catch(() => {})
+      await withTimeout(store.setJSON('settings', initial), 2500).catch(() => {})
       return initial
     } catch (err) {
       console.warn('[Storage] Blobs get settings fallback:', err.message)
@@ -103,22 +151,29 @@ export async function getSettings() {
 
 export async function saveSettings(settings) {
   memorySettings = settings
+  let persisted = false
+  let storageType = 'memory'
+
   const store = getSafeStore('cl-paysage-data')
   if (store) {
     try {
-      await store.setJSON('settings', settings)
-      return { persisted: true, storage: 'blobs' }
+      await withTimeout(store.setJSON('settings', settings), 3000)
+      persisted = true
+      storageType = 'blobs'
     } catch (err) {
       console.warn('[Storage] Blobs save settings fallback:', err.message)
     }
   }
+
   try {
-    writeJSONFile(settingsFile, settings)
-    if (fs.existsSync(settingsFile)) {
-      return { persisted: true, storage: 'filesystem' }
+    const written = writeJSONFile(settingsFile, settings)
+    if (written) {
+      persisted = true
+      if (storageType === 'memory') storageType = 'filesystem'
     }
   } catch {}
-  return { persisted: false, storage: 'memory' }
+
+  return { persisted, storage: storageType }
 }
 
 // --- Photos ---
@@ -128,9 +183,9 @@ export async function savePhoto(filename, buffer, mimetype = 'image/jpeg') {
   const store = getSafeStore('cl-paysage-photos')
   if (store) {
     try {
-      await store.set(filename, buffer, {
+      await withTimeout(store.set(filename, buffer, {
         metadata: { contentType: mimetype }
-      })
+      }), 4000)
     } catch (err) {
       console.warn('[Storage] Blobs photo save fallback:', err.message)
     }
@@ -156,11 +211,11 @@ export async function getPhoto(filename) {
   const store = getSafeStore('cl-paysage-photos')
   if (store) {
     try {
-      const { data, metadata } = await store.getWithMetadata(filename, { type: 'arrayBuffer' })
-      if (data) {
+      const resp = await withTimeout(store.getWithMetadata(filename, { type: 'arrayBuffer' }), 2500)
+      if (resp && resp.data) {
         return {
-          buffer: Buffer.from(data),
-          contentType: metadata?.contentType || 'image/jpeg'
+          buffer: Buffer.from(resp.data),
+          contentType: resp.metadata?.contentType || 'image/jpeg'
         }
       }
     } catch (err) {
@@ -183,7 +238,7 @@ export async function deletePhoto(filename) {
   const store = getSafeStore('cl-paysage-photos')
   if (store) {
     try {
-      await store.delete(filename)
+      await withTimeout(store.delete(filename), 3000)
       return
     } catch (err) {
       console.warn('[Storage] Blobs delete photo fallback:', err.message)
@@ -205,9 +260,9 @@ export async function saveContactMessage(msg) {
   const store = getSafeStore('cl-paysage-data')
   if (store) {
     try {
-      const existing = (await store.get('contacts', { type: 'json' })) || []
+      const existing = (await withTimeout(store.get('contacts', { type: 'json' }), 2500)) || []
       existing.unshift(entry)
-      await store.setJSON('contacts', existing.slice(0, 100))
+      await withTimeout(store.setJSON('contacts', existing.slice(0, 100)), 2500)
     } catch (err) {
       console.warn('[Storage] Blobs save contact fallback:', err.message)
     }
