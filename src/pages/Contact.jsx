@@ -7,8 +7,8 @@ import './Contact.css'
 
 export default function Contact() {
   usePageSeo({
-    title: "Devis Paysagiste & Jardinage Gratuit | Villeneuve d'Ascq & Métropole Lilloise",
-    description: "Demandez votre devis gratuit sous 48h pour l'entretien de votre jardin, taille de haies, tonte de pelouse ou aménagement paysager à Villeneuve d'Ascq et alentours.",
+    title: "Contact & Devis Gratuit | CL Paysage — Paysagiste Villeneuve d'Ascq",
+    description: "Contactez CL Paysage pour votre projet de jardinage ou aménagement paysager à Villeneuve d'Ascq et alentours. Devis gratuit et sans engagement.",
     canonical: "https://clpaysage.fr/contact"
   })
 
@@ -194,14 +194,12 @@ export default function Contact() {
                           value={form.type}
                           onChange={handleChange}
                         >
-                          <option value="">Sélectionner votre besoin</option>
-                          <option value="entretien">Entretien de jardin & Jardinage (tonte, nettoyage)</option>
-                          <option value="taille">Taille de haies & Arbustes</option>
-                          <option value="conception">Conception de jardin sur-mesure</option>
-                          <option value="amenagement">Aménagement paysager & Plantations</option>
-                          <option value="terrasse">Terrasse & Allées extérieures</option>
-                          <option value="cloture">Clôtures & Brise-vue</option>
-                          <option value="autre">Autre projet</option>
+                          <option value="">Sélectionner</option>
+                          <option value="conception">Conception de jardin</option>
+                          <option value="amenagement">Aménagement extérieur</option>
+                          <option value="entretien">Entretien</option>
+                          <option value="terrasse">Terrasse & allées</option>
+                          <option value="autre">Autre</option>
                         </select>
                       </div>
                     </div>
@@ -214,7 +212,7 @@ export default function Contact() {
                         value={form.message}
                         onChange={handleChange}
                         required
-                        placeholder="Décrivez votre projet, vos envies, la superficie de votre terrain ou votre commune…"
+                        placeholder="Décrivez votre projet, vos envies, la superficie de votre terrain…"
                       />
                     </div>
 
@@ -235,8 +233,9 @@ export default function Contact() {
               <div className="contact-info">
                 <div className="contact-info-intro">
                   <p>
-                    Basés à <strong>Villeneuve d'Ascq</strong>, nous intervenons chez les particuliers et professionnels dans toute la <strong>métropole lilloise</strong> (Hem, Croix, Wasquehal, Marcq-en-Barœul, Lille...).
-                    N'hésitez pas à nous contacter par téléphone ou via ce formulaire pour un premier échange et un devis gratuit sans engagement.
+                    Nous intervenons dans toute la région.
+                    N'hésitez pas à nous contacter par téléphone
+                    ou via le formulaire pour un premier échange gratuit et sans engagement.
                   </p>
                 </div>
 
