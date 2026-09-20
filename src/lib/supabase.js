@@ -120,6 +120,49 @@ export async function fetchProjectsFromSupabase() {
     }
 
     if (Array.isArray(data)) {
+      // Si la table projects est vide dans Supabase, on la peuple automatiquement avec les 4 projets par défaut
+      if (data.length === 0 && defaultProjects && defaultProjects.length > 0) {
+        console.log('%c[Supabase Projects] 🔄 Table "projects" vide dans Supabase, initialisation automatique des réalisations par défaut...', 'color: #3b82f6; font-weight: bold;')
+        try {
+          const rowsToInsert = defaultProjects.map(p => ({
+            id: p.id,
+            title: p.title || 'Sans titre',
+            description: p.description || '',
+            category: p.category || 'autre',
+            location: p.location || '',
+            date: p.date || '',
+            photos: p.photos || [],
+            social_links: p.socialLinks || {},
+            published: p.published ?? true,
+            created_at: p.createdAt || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }))
+          const { data: inserted, error: insertError } = await supabase
+            .from('projects')
+            .upsert(rowsToInsert)
+            .select()
+
+          if (!insertError && inserted && inserted.length > 0) {
+            console.log(`%c[Supabase Projects] ✅ ${inserted.length} projets insérés avec succès dans Supabase !`, 'color: #3ecf8e; font-weight: bold;')
+            return inserted.map(p => ({
+              id: p.id,
+              title: p.title,
+              description: p.description || '',
+              category: p.category || 'autre',
+              location: p.location || '',
+              date: p.date || '',
+              photos: p.photos || [],
+              socialLinks: p.social_links || {},
+              published: Boolean(p.published),
+              createdAt: p.created_at,
+              updatedAt: p.updated_at,
+            }))
+          }
+        } catch (seedErr) {
+          console.warn('[Supabase Projects] Auto-seed error:', seedErr)
+        }
+      }
+
       return data.map(p => ({
         id: p.id,
         title: p.title,
