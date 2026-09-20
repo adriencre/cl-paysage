@@ -94,21 +94,30 @@ export default function Appearance({ token }) {
 
       // 2. Fallback to server upload if Supabase is not configured or failed
       if (!uploadedUrl) {
-        const formData = new FormData()
-        formData.append('photos', compressedFile)
+        try {
+          const formData = new FormData()
+          formData.append('photos', compressedFile)
 
-        const res = await fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        })
+          const res = await fetch('/api/admin/upload', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          })
 
-        if (res.ok) {
-          const uploaded = await res.json()
-          if (uploaded && uploaded[0] && uploaded[0].url) {
-            uploadedUrl = uploaded[0].url
+          if (res.ok) {
+            const uploaded = await res.json()
+            if (uploaded && uploaded[0] && uploaded[0].url) {
+              uploadedUrl = uploaded[0].url
+            }
           }
+        } catch {
+          // Serveur inaccessible
         }
+      }
+
+      // 3. Fallback ultime : stockage direct en Base64 compressé dans la BDD (survit aux pushs Netlify)
+      if (!uploadedUrl && localDataUrl) {
+        uploadedUrl = localDataUrl
       }
 
       if (uploadedUrl) {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { isSupabaseConfigured } from '../lib/supabase'
 import './AdminLayout.css'
 
 export default function AdminLayout({ children, onLogout }) {
@@ -96,6 +97,30 @@ export default function AdminLayout({ children, onLogout }) {
         </nav>
 
         <div className="admin-sidebar-footer">
+          <div style={{
+            margin: '0.5rem 1rem 0.75rem',
+            padding: '0.5rem 0.75rem',
+            borderRadius: '6px',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: isSupabaseConfigured ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+            color: isSupabaseConfigured ? '#10b981' : '#f59e0b',
+            border: `1px solid ${isSupabaseConfigured ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`
+          }} title={isSupabaseConfigured ? "Vos images et données sont hébergées de manière permanente sur Supabase Cloud (survivent aux déploiements Netlify)" : "Variables Supabase non détectées. Les uploads utilisent le stockage local temporaire."}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: isSupabaseConfigured ? '#10b981' : '#f59e0b',
+              boxShadow: isSupabaseConfigured ? '0 0 6px #10b981' : 'none'
+            }} />
+            <span style={{ fontWeight: 500 }}>
+              {isSupabaseConfigured ? 'Cloud BDD actif' : 'Mode local (Temporaire)'}
+            </span>
+          </div>
+
           <button className="admin-nav-link logout" onClick={onLogout}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
