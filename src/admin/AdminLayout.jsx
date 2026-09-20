@@ -1,13 +1,39 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { isSupabaseConfigured } from '../lib/supabase'
+import { fetchAdminContacts } from '../lib/dataSync'
 import './AdminLayout.css'
 
 export default function AdminLayout({ children, onLogout }) {
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const isActive = (path) => location.pathname === path ? ' active' : ''
+
+  const checkUnread = async () => {
+    try {
+      const token = localStorage.getItem('admin_token')
+      if (!token) return
+      const contacts = await fetchAdminContacts(token)
+      if (Array.isArray(contacts)) {
+        const count = contacts.filter(c => c.status === 'unread').length
+        setUnreadCount(count)
+      }
+    } catch {}
+  }
+
+  useEffect(() => {
+    checkUnread()
+    const handleUpdate = () => checkUnread()
+    window.addEventListener('cl_contacts_updated', handleUpdate)
+    const interval = setInterval(checkUnread, 20000)
+
+    return () => {
+      window.removeEventListener('cl_contacts_updated', handleUpdate)
+      clearInterval(interval)
+    }
+  }, [])
 
   return (
     <div className="admin-layout">
@@ -41,6 +67,21 @@ export default function AdminLayout({ children, onLogout }) {
               <rect x="3" y="16" width="7" height="5" rx="1" />
             </svg>
             Réalisations
+          </Link>
+
+          <Link
+            to="/admin/messages"
+            className={`admin-nav-link${isActive('/admin/messages')}`}
+            onClick={() => setSidebarOpen(false)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+            <span style={{ flex: 1 }}>Messagerie</span>
+            {unreadCount > 0 && (
+              <span className="admin-nav-badge">{unreadCount}</span>
+            )}
           </Link>
 
           <Link

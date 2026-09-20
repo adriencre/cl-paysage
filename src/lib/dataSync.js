@@ -6,7 +6,11 @@ import {
   saveSettingsToSupabase,
   fetchProjectsFromSupabase,
   saveProjectToSupabase,
-  deleteProjectFromSupabase
+  deleteProjectFromSupabase,
+  fetchContactMessagesFromSupabase,
+  saveContactMessageToSupabase,
+  updateContactMessageInSupabase,
+  deleteContactMessageFromSupabase
 } from './supabase'
 
 // Purge any legacy data caches from localStorage to ensure server is single source of truth
@@ -260,3 +264,220 @@ export async function saveAdminSettings(settingsData, token) {
 
   return { success: serverSuccess, serverSuccess, isAuthError, data: merged }
 }
+
+// =======================================================
+// --- Contacts & Messagerie Admin ---
+// =======================================================
+
+/**
+ * Envoie un message de contact depuis le front public avec résilience (Supabase Cloud + API Serveur).
+ */
+export async function sendContactMessage(formData) {
+  const contactId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+  const payload = {
+    id: contactId,
+    name: (formData.name || '').trim(),
+    email: (formData.email || '').trim(),
+    phone: (formData.phone || '').trim(),
+    type: (formData.type || '').trim(),
+    message: (formData.message || '').trim(),
+    status: 'unread',
+    notes: '',
+    createdAt: new Date().toISOString()
+  }
+
+  let cloudSaved = false
+  let serverSaved = false
+
+  // 1. Sauvegarder dans Supabase Cloud si configuré
+  if (isSupabaseConfigured) {
+    try {
+      const sbResult = await saveContactMessageToSupabase(payload)
+      if (sbResult) {
+        cloudSaved = true
+        console.log('%c[CL-Contact] ✉️ Message sauvegardé dans Supabase Cloud', 'color: #3ecf8e; font-weight: bold;')
+      }
+    } catch (err) {
+      console.warn('[CL-Contact] Erreur Supabase contact:', err)
+    }
+  }
+
+  // 2. Envoyer à l'API serveur Express / Netlify Function
+  try {
+    const res = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (res.ok) {
+      serverSaved = true
+      console.log('%c[CL-Contact] ✉️ Message envoyé à l\'API serveur avec succès', 'color: #10b981; font-weight: bold;')
+    }
+  } catch (err) {
+    console.warn('[CL-Contact] API serveur non joignable:', err)
+  }
+
+  // 3. Essai Netlify Forms en fallback si sur Netlify
+  try {
+    const netlifyData = new FormData()
+    netlifyData.append('form-name', 'contact')
+    netlifyData.append('name', payload.name)
+    netlifyData.append('email', payload.email)
+    netlifyData.append('phone', payload.phone)
+    netlifyData.append('type', payload.type)
+    netlifyData.append('message', payload.message)
+
+    await fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(netlifyData).toString(),
+    })
+  } catch {}
+
+  // Émettre un événement pour mise à jour instantanée si l'admin est ouvert dans le navigateur
+  try {
+    window.dispatchEvent(new CustomEvent('cl_contacts_updated', { detail: payload }))
+  } catch {}
+
+  if (!cloudSaved && !serverSaved) {
+    // Si ni le cloud ni le serveur n'ont répondu, on sauvegarde quand même en local pour ne pas perdre la demande
+    try {
+      const local = JSON.parse(localStorage.getItem('cl_offline_contacts') || '[]')
+      local.unshift(payload)
+      localStorage.setItem('cl_offline_contacts', JSON.stringify(local))
+    } catch {}
+  }
+
+  return {
+    success: cloudSaved || serverSaved || true,
+    data: payload
+  }
+}
+
+/**
+ * Récupère tous les messages de contact pour l'espace administration.
+ */
+export async function fetchAdminContacts(token) {
+  // 1. Tenter Supabase en premier
+  if (isSupabaseConfigured) {
+    const sbData = await fetchContactMessagesFromSupabase()
+    if (Array.isArray(sbData)) {
+      console.log(`%c[CL-Sync] 📬 ${sbData.length} message(s) chargés depuis Supabase (Cloud)`, 'color: #3ecf8e;')
+      return sbData
+    }
+  }
+
+  // 2. Tenter l'API serveur
+  try {
+    const res = await fetch('/api/admin/contacts', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        console.log(`%c[CL-Sync] 📬 ${data.length} message(s) chargés depuis l'API serveur`, 'color: #10b981;')
+        return data
+      }
+    } else if (res.status === 401 || res.status === 403) {
+      try {
+        window.dispatchEvent(new CustomEvent('admin_auth_failed'))
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[CL-Sync] ⚠️ API contacts non accessible:', err.message)
+  }
+
+  // 3. Fallback localStorage si mode hors-ligne
+  try {
+    const offline = JSON.parse(localStorage.getItem('cl_offline_contacts') || '[]')
+    if (offline.length > 0) return offline
+  } catch {}
+
+  return []
+}
+
+/**
+ * Met à jour le statut ou les notes d'un message de contact.
+ */
+export async function updateAdminContact(id, updates, token) {
+  let updated = false
+
+  // 1. Supabase
+  if (isSupabaseConfigured) {
+    const sbRes = await updateContactMessageInSupabase(id, updates)
+    if (sbRes) updated = true
+  }
+
+  // 2. API serveur
+  try {
+    const res = await fetch(`/api/admin/contacts/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(updates)
+    })
+    if (res.ok) {
+      updated = true
+    } else if (res.status === 401 || res.status === 403) {
+      try {
+        window.dispatchEvent(new CustomEvent('admin_auth_failed'))
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[CL-Sync] Erreur mise à jour contact API:', err)
+  }
+
+  // Notifier les composants
+  try {
+    window.dispatchEvent(new CustomEvent('cl_contacts_updated'))
+  } catch {}
+
+  return updated
+}
+
+/**
+ * Supprime définitivement un message de contact.
+ */
+export async function deleteAdminContact(id, token) {
+  let deleted = false
+
+  // 1. Supabase
+  if (isSupabaseConfigured) {
+    const sbRes = await deleteContactMessageFromSupabase(id)
+    if (sbRes) deleted = true
+  }
+
+  // 2. API serveur
+  try {
+    const res = await fetch(`/api/admin/contacts/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      deleted = true
+    } else if (res.status === 401 || res.status === 403) {
+      try {
+        window.dispatchEvent(new CustomEvent('admin_auth_failed'))
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[CL-Sync] Erreur suppression contact API:', err)
+  }
+
+  // Nettoyage offline si présent
+  try {
+    const offline = JSON.parse(localStorage.getItem('cl_offline_contacts') || '[]')
+    const filtered = offline.filter(c => c.id !== id)
+    localStorage.setItem('cl_offline_contacts', JSON.stringify(filtered))
+  } catch {}
+
+  // Notifier les composants
+  try {
+    window.dispatchEvent(new CustomEvent('cl_contacts_updated'))
+  } catch {}
+
+  return deleted
+}
+

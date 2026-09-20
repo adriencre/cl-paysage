@@ -1,0 +1,38 @@
+[
+  {
+    "id": "msg_1789915813514_p5um5",
+    "name": "Claire Delorme",
+    "email": "claire.delorme@example.fr",
+    "phone": "06 11 22 33 44",
+    "type": "amenagement",
+    "message": "Bonjour, nous souhaitons refaire notre terrasse et aménager une allée paysagère.",
+    "status": "replied",
+    "notes": "Contacté par téléphone le 20/09, visite sur site prévue.",
+    "createdAt": "2026-09-20T14:50:13.514Z",
+    "updatedAt": "2026-09-20T14:50:13.607Z"
+  },
+  {
+    "id": "msg_demo_1",
+    "name": "Sophie Martin",
+    "email": "sophie.martin@example.fr",
+    "phone": "06 12 34 56 78",
+    "type": "conception",
+    "message": "Bonjour, nous venons d'acquérir une maison avec un terrain de 600m² en pente. Nous aimerions créer un jardin paysager contemporain avec terrasse en bois et massifs méditerranéens. Serait-il possible de convenir d'un rendez-vous pour étudier le projet ?",
+    "status": "unread",
+    "notes": "",
+    "createdAt": "2026-09-19T14:30:00.000Z",
+    "updatedAt": "2026-09-19T14:30:00.000Z"
+  },
+  {
+    "id": "msg_demo_2",
+    "name": "Alexandre Dupont",
+    "email": "alex.dupont@example.fr",
+    "phone": "07 98 76 54 32",
+    "type": "amenagement",
+    "message": "Bonjour, je souhaite réaménager les abords de notre piscine avec un dallage en pierre naturelle et quelques plantations adaptées. Avez-vous des disponibilités le mois prochain pour un devis ?",
+    "status": "read",
+    "notes": "Premier échange téléphonique effectué le 19/09. Envoi d'un pré-devis par email prévu.",
+    "createdAt": "2026-09-18T10:15:00.000Z",
+    "updatedAt": "2026-09-19T09:00:00.000Z"
+  }
+]

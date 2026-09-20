@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import FadeIn from '../components/FadeIn'
 import defaultSettings from '../../data/settings.json'
-import { fetchPublicSettings } from '../lib/dataSync'
+import { fetchPublicSettings, sendContactMessage } from '../lib/dataSync'
 import './Contact.css'
 
 export default function Contact() {
@@ -38,39 +38,13 @@ export default function Contact() {
     setError('')
 
     try {
-      let sent = false
-
-      // 1. Try sending to Netlify Forms
-      try {
-        const formData = new FormData()
-        formData.append('form-name', 'contact')
-        formData.append('name', form.name)
-        formData.append('email', form.email)
-        formData.append('phone', form.phone || '')
-        formData.append('type', form.type || '')
-        formData.append('message', form.message)
-
-        const netlifyRes = await fetch('/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(formData).toString(),
-        })
-        if (netlifyRes.ok) sent = true
-      } catch {}
-
-      // 2. Also send to API endpoint (for local dev or fallback)
-      if (!sent) {
-        try {
-          const apiRes = await fetch('/api/contact', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(form),
-          })
-          if (apiRes.ok) sent = true
-        } catch {}
+      const res = await sendContactMessage(form)
+      if (res && res.success) {
+        setSubmitted(true)
+        setForm({ name: '', email: '', phone: '', type: '', message: '' })
+      } else {
+        throw new Error('Erreur transmission')
       }
-
-      setSubmitted(true)
     } catch (err) {
       console.error('Contact submission error:', err)
       setError("Une erreur est survenue lors de l'envoi. Veuillez nous contacter directement par téléphone ou par email.")
@@ -103,9 +77,39 @@ export default function Contact() {
               {/* Form */}
               <div>
                 {submitted ? (
-                  <div className="form-success" id="form-success">
-                    <strong>Merci !</strong> Votre message a bien été envoyé.
-                    Nous reviendrons vers vous dans les plus brefs délais.
+                  <div className="form-success" id="form-success" style={{
+                    padding: '2.5rem',
+                    background: 'rgba(46, 74, 40, 0.08)',
+                    border: '1px solid rgba(46, 74, 40, 0.25)',
+                    borderRadius: '8px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      width: '56px',
+                      height: '56px',
+                      margin: '0 auto 1.25rem',
+                      background: '#2e4a28',
+                      color: '#fff',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.75rem'
+                    }}>✓</div>
+                    <h3 style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#1a1f16', marginBottom: '0.75rem', fontSize: '1.5rem' }}>
+                      Merci pour votre message !
+                    </h3>
+                    <p style={{ color: '#52525b', lineHeight: 1.6, marginBottom: '1.5rem', maxWidth: '440px', margin: '0 auto 1.5rem' }}>
+                      Votre demande a bien été transmise à notre équipe. Nous l'étudions avec attention et reviendrons vers vous dans les plus brefs délais.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => setSubmitted(false)}
+                      style={{ fontSize: '0.9rem', padding: '0.6rem 1.4rem' }}
+                    >
+                      Envoyer un autre message
+                    </button>
                   </div>
                 ) : (
                   <form

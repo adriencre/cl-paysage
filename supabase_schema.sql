@@ -159,9 +159,28 @@ VALUES
 )
 ON CONFLICT (id) DO NOTHING;
 
--- 3. Sécurité RLS et Politiques d'accès globales
+-- 4. Table des Messages de Contact (Messagerie Admin)
+CREATE TABLE IF NOT EXISTS contacts (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT DEFAULT '',
+  type TEXT DEFAULT '',
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'unread', -- 'unread', 'read', 'replied', 'archived'
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour tri rapide par date
+CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts (status);
+
+-- 5. Sécurité RLS et Politiques d'accès globales
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Tout public settings" ON settings;
 CREATE POLICY "Tout public settings" ON settings
@@ -171,7 +190,11 @@ DROP POLICY IF EXISTS "Tout public projects" ON projects;
 CREATE POLICY "Tout public projects" ON projects
   FOR ALL TO public USING (true) WITH CHECK (true);
 
--- 4. Bucket de stockage pour les photos (Hero, Logo, Projets)
+DROP POLICY IF EXISTS "Tout public contacts" ON contacts;
+CREATE POLICY "Tout public contacts" ON contacts
+  FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- 6. Bucket de stockage pour les photos (Hero, Logo, Projets)
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('photos', 'photos', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
@@ -179,3 +202,4 @@ ON CONFLICT (id) DO UPDATE SET public = true;
 DROP POLICY IF EXISTS "Tout public storage photos" ON storage.objects;
 CREATE POLICY "Tout public storage photos" ON storage.objects
   FOR ALL TO public USING (bucket_id = 'photos') WITH CHECK (bucket_id = 'photos');
+

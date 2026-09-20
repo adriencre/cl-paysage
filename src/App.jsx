@@ -18,6 +18,7 @@ import Dashboard from './admin/Dashboard'
 import ProjectForm from './admin/ProjectForm'
 import Settings from './admin/Settings'
 import Appearance from './admin/Appearance'
+import Messages from './admin/Messages'
 
 function isTokenExpired(token) {
   if (!token) return true
@@ -139,6 +140,9 @@ export default function App() {
           {/* Admin */}
           <Route path="/admin" element={
             <AdminRoute>{({ token }) => <Dashboard token={token} />}</AdminRoute>
+          } />
+          <Route path="/admin/messages" element={
+            <AdminRoute>{({ token }) => <Messages token={token} />}</AdminRoute>
           } />
           <Route path="/admin/nouveau" element={
             <AdminRoute>{({ token }) => <ProjectForm token={token} />}</AdminRoute>

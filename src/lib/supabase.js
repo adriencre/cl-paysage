@@ -284,3 +284,136 @@ export async function deleteProjectFromSupabase(id) {
     return false
   }
 }
+
+// --- Messages de Contact (Supabase) ---
+
+export async function fetchContactMessagesFromSupabase() {
+  if (!supabase) return null
+
+  try {
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.warn('[Supabase Contacts] Erreur lecture:', error.message)
+      return null
+    }
+
+    if (Array.isArray(data)) {
+      return data.map(c => ({
+        id: c.id,
+        name: c.name || 'Anonyme',
+        email: c.email || '',
+        phone: c.phone || '',
+        type: c.type || '',
+        message: c.message || '',
+        status: c.status || 'unread',
+        notes: c.notes || '',
+        createdAt: c.created_at || c.createdAt,
+        updatedAt: c.updated_at || c.updatedAt,
+      }))
+    }
+  } catch (err) {
+    console.warn('[Supabase Contacts] Exception:', err)
+  }
+
+  return null
+}
+
+export async function saveContactMessageToSupabase(contactData) {
+  if (!supabase) return null
+
+  const row = {
+    id: contactData.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    name: contactData.name || 'Anonyme',
+    email: contactData.email || '',
+    phone: contactData.phone || '',
+    type: contactData.type || '',
+    message: contactData.message || '',
+    status: contactData.status || 'unread',
+    notes: contactData.notes || '',
+    created_at: contactData.createdAt || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('contacts')
+      .upsert(row)
+      .select()
+
+    if (error) {
+      console.error('[Supabase Contacts] Erreur sauvegarde:', error.message)
+      return null
+    }
+
+    console.log('%c[Supabase Contacts] ✉️ Message enregistré dans PostgreSQL avec succès:', 'color: #3ecf8e; font-weight: bold;', row.id)
+    return {
+      ...row,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }
+  } catch (err) {
+    console.error('[Supabase Contacts] Exception:', err)
+    return null
+  }
+}
+
+export async function updateContactMessageInSupabase(id, updates) {
+  if (!supabase) return null
+
+  const rowUpdates = {
+    ...(updates.status !== undefined && { status: updates.status }),
+    ...(updates.notes !== undefined && { notes: updates.notes }),
+    updated_at: new Date().toISOString(),
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('contacts')
+      .update(rowUpdates)
+      .eq('id', id)
+      .select()
+      .maybeSingle()
+
+    if (error) {
+      console.error('[Supabase Contacts] Erreur mise à jour:', error.message)
+      return null
+    }
+
+    console.log('%c[Supabase Contacts] ✏️ Message mis à jour dans PostgreSQL:', 'color: #3ecf8e;', id)
+    return data ? {
+      ...data,
+      createdAt: data.created_at || data.createdAt,
+      updatedAt: data.updated_at || data.updatedAt,
+    } : null
+  } catch (err) {
+    console.error('[Supabase Contacts] Exception:', err)
+    return null
+  }
+}
+
+export async function deleteContactMessageFromSupabase(id) {
+  if (!supabase) return null
+
+  try {
+    const { error } = await supabase
+      .from('contacts')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('[Supabase Contacts] Erreur suppression:', error.message)
+      return false
+    }
+
+    console.log('%c[Supabase Contacts] 🗑️ Message supprimé de PostgreSQL:', 'color: #3ecf8e;', id)
+    return true
+  } catch (err) {
+    console.error('[Supabase Contacts] Exception:', err)
+    return false
+  }
+}
+

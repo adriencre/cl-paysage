@@ -13,7 +13,10 @@ import {
   savePhoto,
   getPhoto,
   deletePhoto,
-  saveContactMessage
+  getContactMessages,
+  saveContactMessage,
+  updateContactMessage,
+  deleteContactMessage
 } from './storage.js'
 
 function getProjectRootDir() {
@@ -127,12 +130,12 @@ router.get('/settings', async (req, res) => {
 // Contact form submission
 router.post('/contact', async (req, res) => {
   try {
-    const { name, email, phone, type, message } = req.body || {}
+    const { id, name, email, phone, type, message } = req.body || {}
     if (!name || !email || !message) {
       return res.status(400).json({ error: 'Champs obligatoires manquants (nom, email, message)' })
     }
-    const saved = await saveContactMessage({ name, email, phone, type, message })
-    console.log(`[Contact] Nouveau message reçu de ${name} (${email})`)
+    const saved = await saveContactMessage({ id, name, email, phone, type, message })
+    console.log(`[Contact] ✉️ Nouveau message reçu de ${name} (${email}) - ID: ${saved.id}`)
     res.json({ success: true, message: 'Message reçu avec succès', data: saved })
   } catch (err) {
     console.error('Contact error:', err)
@@ -307,6 +310,61 @@ router.put('/admin/settings', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('[API Settings] Settings error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// --- Admin Contacts / Messagerie ---
+
+// Get all contact messages (Admin)
+router.get('/admin/contacts', authMiddleware, async (req, res) => {
+  try {
+    const contacts = await getContactMessages()
+    const sorted = [...(contacts || [])].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.receivedAt || 0)
+      const dateB = new Date(b.createdAt || b.receivedAt || 0)
+      return dateB - dateA
+    })
+    console.log(`[API Contacts] 📬 ${sorted.length} message(s) chargé(s) pour l'admin`)
+    res.json(sorted)
+  } catch (err) {
+    console.error('[API Contacts] Erreur lecture:', err)
+    res.status(500).json({ error: 'Erreur serveur lors de la lecture des messages' })
+  }
+})
+
+// Update contact message (Admin - status, notes, etc.)
+router.put('/admin/contacts/:id', authMiddleware, async (req, res) => {
+  try {
+    const { status, notes } = req.body || {}
+    const updated = await updateContactMessage(req.params.id, {
+      ...(status !== undefined && { status }),
+      ...(notes !== undefined && { notes }),
+    })
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Message non trouvé' })
+    }
+
+    console.log(`[API Contacts] ✏️ Message ${req.params.id} mis à jour (statut: ${updated.status})`)
+    res.json(updated)
+  } catch (err) {
+    console.error('[API Contacts] Erreur mise à jour:', err)
+    res.status(500).json({ error: 'Erreur serveur lors de la mise à jour du message' })
+  }
+})
+
+// Delete contact message (Admin)
+router.delete('/admin/contacts/:id', authMiddleware, async (req, res) => {
+  try {
+    const success = await deleteContactMessage(req.params.id)
+    if (!success) {
+      return res.status(404).json({ error: 'Message non trouvé' })
+    }
+    console.log(`[API Contacts] 🗑️ Message supprimé: ${req.params.id}`)
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[API Contacts] Erreur suppression:', err)
+    res.status(500).json({ error: 'Erreur serveur lors de la suppression du message' })
   }
 })
 

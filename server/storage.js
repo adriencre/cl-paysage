@@ -19,11 +19,13 @@ const rootDir = getProjectRootDir()
 const dataDir = path.join(rootDir, 'data')
 const projectsFile = path.join(dataDir, 'projects.json')
 const settingsFile = path.join(dataDir, 'settings.json')
+const contactsFile = path.join(dataDir, 'contacts.json')
 const uploadsDir = path.join(rootDir, 'public', 'uploads')
 
 // In-memory cache for serverless warm execution
 let memoryProjects = null
 let memorySettings = null
+let memoryContacts = null
 let memoryPhotos = new Map()
 
 function withTimeout(promise, ms = 2500) {
@@ -260,22 +262,115 @@ export async function deletePhoto(filename) {
   }
 }
 
-export async function saveContactMessage(msg) {
-  const entry = {
-    id: 'msg_' + Date.now(),
-    receivedAt: new Date().toISOString(),
-    ...msg
-  }
+// --- Messages de Contact (Messagerie Admin) ---
+export async function getContactMessages() {
   const store = getSafeStore('cl-paysage-data')
   if (store) {
     try {
-      const existing = (await withTimeout(store.get('contacts', { type: 'json' }), 2500)) || []
-      existing.unshift(entry)
-      await withTimeout(store.setJSON('contacts', existing.slice(0, 100)), 2500)
+      const data = await withTimeout(store.get('contacts', { type: 'json' }), 2500)
+      if (data && Array.isArray(data)) {
+        memoryContacts = data
+        return data
+      }
+      const initial = memoryContacts || readJSONFile(contactsFile, [])
+      await withTimeout(store.setJSON('contacts', initial), 2500).catch(() => {})
+      return initial
+    } catch (err) {
+      console.warn('[Storage] Blobs get contacts fallback:', err.message)
+    }
+  }
+
+  if (memoryContacts) return memoryContacts
+  memoryContacts = readJSONFile(contactsFile, [])
+  return memoryContacts
+}
+
+export async function saveContactMessage(msg) {
+  const entry = {
+    id: msg.id || 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+    name: msg.name || 'Anonyme',
+    email: msg.email || '',
+    phone: msg.phone || '',
+    type: msg.type || '',
+    message: msg.message || '',
+    status: msg.status || 'unread', // 'unread' | 'read' | 'replied' | 'archived'
+    notes: msg.notes || '',
+    createdAt: msg.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+
+  let contacts = await getContactMessages()
+  contacts = [entry, ...contacts]
+  memoryContacts = contacts
+
+  const store = getSafeStore('cl-paysage-data')
+  if (store) {
+    try {
+      await withTimeout(store.setJSON('contacts', contacts.slice(0, 300)), 2500)
     } catch (err) {
       console.warn('[Storage] Blobs save contact fallback:', err.message)
     }
   }
+
+  try {
+    writeJSONFile(contactsFile, contacts)
+  } catch (err) {
+    console.warn('[Storage] Failed to save contact to file:', err.message)
+  }
+
   return entry
 }
+
+export async function updateContactMessage(id, updates) {
+  let contacts = await getContactMessages()
+  const idx = contacts.findIndex(c => c.id === id)
+  if (idx === -1) return null
+
+  const updated = {
+    ...contacts[idx],
+    ...updates,
+    id: contacts[idx].id,
+    updatedAt: new Date().toISOString()
+  }
+
+  contacts[idx] = updated
+  memoryContacts = contacts
+
+  const store = getSafeStore('cl-paysage-data')
+  if (store) {
+    try {
+      await withTimeout(store.setJSON('contacts', contacts.slice(0, 300)), 2500)
+    } catch (err) {
+      console.warn('[Storage] Blobs update contact fallback:', err.message)
+    }
+  }
+
+  try {
+    writeJSONFile(contactsFile, contacts)
+  } catch {}
+
+  return updated
+}
+
+export async function deleteContactMessage(id) {
+  let contacts = await getContactMessages()
+  const filtered = contacts.filter(c => c.id !== id)
+  memoryContacts = filtered
+
+  const store = getSafeStore('cl-paysage-data')
+  if (store) {
+    try {
+      await withTimeout(store.setJSON('contacts', filtered.slice(0, 300)), 2500)
+    } catch (err) {
+      console.warn('[Storage] Blobs delete contact fallback:', err.message)
+    }
+  }
+
+  try {
+    writeJSONFile(contactsFile, filtered)
+  } catch {}
+
+  return true
+}
+
 
