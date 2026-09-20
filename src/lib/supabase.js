@@ -53,7 +53,7 @@ export async function fetchSettingsFromSupabase() {
   try {
     const { data, error } = await supabase
       .from('settings')
-      .select('data')
+      .select('*')
       .eq('id', 1)
       .maybeSingle()
 
@@ -62,13 +62,33 @@ export async function fetchSettingsFromSupabase() {
       return null
     }
 
-    if (data && data.data) {
+    if (data) {
+      // 1. Lire depuis les colonnes dédiées ou depuis le champ JSON 'data' en fallback
+      const jsonData = (data.data && typeof data.data === 'object') ? data.data : {}
+
       return {
         ...defaultSettings,
-        ...data.data,
-        branding: { ...(defaultSettings.branding || {}), ...(data.data.branding || {}) },
-        hero: { ...(defaultSettings.hero || {}), ...(data.data.hero || {}) },
-        socialLinks: { ...(defaultSettings.socialLinks || {}), ...(data.data.socialLinks || {}) },
+        ...jsonData,
+        phone: data.phone || jsonData.phone || defaultSettings.phone,
+        email: data.email || jsonData.email || defaultSettings.email,
+        address: data.address || jsonData.address || defaultSettings.address,
+        hours: data.hours || jsonData.hours || defaultSettings.hours,
+        siteDescription: data.site_description || jsonData.siteDescription || defaultSettings.siteDescription,
+        branding: {
+          brandName: data.brand_name || jsonData.branding?.brandName || defaultSettings.branding.brandName,
+          brandAccent: data.brand_accent || jsonData.branding?.brandAccent || defaultSettings.branding.brandAccent,
+          brandSub: data.brand_sub || jsonData.branding?.brandSub || defaultSettings.branding.brandSub,
+          logoUrl: data.logo_url || jsonData.branding?.logoUrl || defaultSettings.branding.logoUrl,
+        },
+        hero: {
+          bgImage: data.hero_bg_image || jsonData.hero?.bgImage || defaultSettings.hero.bgImage,
+          tagline: data.hero_tagline || jsonData.hero?.tagline || defaultSettings.hero.tagline,
+          titleLine1: data.hero_title_line1 || jsonData.hero?.titleLine1 || defaultSettings.hero.titleLine1,
+          titleLine2: data.hero_title_line2 || jsonData.hero?.titleLine2 || defaultSettings.hero.titleLine2,
+          description: data.hero_description || jsonData.hero?.description || defaultSettings.hero.description,
+          buttonText: data.hero_button_text || jsonData.hero?.buttonText || defaultSettings.hero.buttonText,
+        },
+        socialLinks: data.social_links || jsonData.socialLinks || defaultSettings.socialLinks,
       }
     }
   } catch (err) {
@@ -81,14 +101,33 @@ export async function fetchSettingsFromSupabase() {
 export async function saveSettingsToSupabase(settingsData) {
   if (!supabase) return null
 
+  // Sauvegarde dans toutes les colonnes dédiées visibles dans l'interface Supabase
+  const row = {
+    id: 1,
+    phone: settingsData.phone ?? '',
+    email: settingsData.email ?? '',
+    address: settingsData.address ?? '',
+    hours: settingsData.hours ?? '',
+    site_description: settingsData.siteDescription ?? '',
+    hero_bg_image: settingsData.hero?.bgImage ?? '',
+    hero_tagline: settingsData.hero?.tagline ?? '',
+    hero_title_line1: settingsData.hero?.titleLine1 ?? '',
+    hero_title_line2: settingsData.hero?.titleLine2 ?? '',
+    hero_description: settingsData.hero?.description ?? '',
+    hero_button_text: settingsData.hero?.buttonText ?? '',
+    brand_name: settingsData.branding?.brandName ?? '',
+    brand_accent: settingsData.branding?.brandAccent ?? '',
+    brand_sub: settingsData.branding?.brandSub ?? '',
+    logo_url: settingsData.branding?.logoUrl ?? '',
+    social_links: settingsData.socialLinks ?? {},
+    data: settingsData, // Conserve le JSON pour compatibilité totale
+    updated_at: new Date().toISOString()
+  }
+
   try {
     const { data, error } = await supabase
       .from('settings')
-      .upsert({
-        id: 1,
-        data: settingsData,
-        updated_at: new Date().toISOString()
-      })
+      .upsert(row)
       .select()
 
     if (error) {
@@ -96,7 +135,7 @@ export async function saveSettingsToSupabase(settingsData) {
       return false
     }
 
-    console.log('%c[Supabase Settings] 💾 Paramètres sauvegardés dans PostgreSQL avec succès !', 'color: #3ecf8e; font-weight: bold;')
+    console.log('%c[Supabase Settings] 💾 Tous les paramètres ont été enregistrés dans PostgreSQL avec succès !', 'color: #3ecf8e; font-weight: bold;', row)
     return true
   } catch (err) {
     console.error('[Supabase Settings] Erreur:', err)

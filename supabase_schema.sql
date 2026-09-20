@@ -3,46 +3,90 @@
 -- À copier-coller dans l'onglet "SQL Editor" de Supabase
 -- =======================================================
 
--- 1. Table des Paramètres du site
+-- 1. Table des Paramètres du site (avec colonnes visibles et éditables directement dans Supabase)
 CREATE TABLE IF NOT EXISTS settings (
   id INT PRIMARY KEY DEFAULT 1,
-  data JSONB NOT NULL,
+  phone TEXT DEFAULT '06 00 00 00 00',
+  email TEXT DEFAULT 'contact@clpaysage.fr',
+  address TEXT DEFAULT 'Région et alentours',
+  hours TEXT DEFAULT 'Lun – Ven : 8h – 18h\nSam : sur rendez-vous',
+  site_description TEXT DEFAULT 'Conception et aménagement de jardins d''exception. Nous transformons vos extérieurs en espaces de vie uniques.',
+  hero_bg_image TEXT DEFAULT '/images/hero.jpg',
+  hero_tagline TEXT DEFAULT 'Atelier de paysage · Conception & Réalisation',
+  hero_title_line1 TEXT DEFAULT 'L''art de façonner',
+  hero_title_line2 TEXT DEFAULT 'vos espaces extérieurs',
+  hero_description TEXT DEFAULT 'Conception sur-mesure, aménagement végétal et harmonie des matières. Nous donnons vie à des jardins d''exception, pensés pour durer et évoluer au fil des saisons.',
+  hero_button_text TEXT DEFAULT 'Regarder les réalisations',
+  brand_name TEXT DEFAULT 'CL',
+  brand_accent TEXT DEFAULT 'Paysage',
+  brand_sub TEXT DEFAULT 'Paysagiste Concepteur',
+  logo_url TEXT DEFAULT '/images/logo.png',
+  social_links JSONB DEFAULT '{"instagram": "", "facebook": "", "pinterest": "", "tiktok": ""}'::jsonb,
+  data JSONB DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insertion des paramètres initiaux
-INSERT INTO settings (id, data)
+-- Si la table existait déjà avec seulement "data", on ajoute toutes les colonnes manquantes
+ALTER TABLE settings 
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS address TEXT,
+  ADD COLUMN IF NOT EXISTS hours TEXT,
+  ADD COLUMN IF NOT EXISTS site_description TEXT,
+  ADD COLUMN IF NOT EXISTS hero_bg_image TEXT,
+  ADD COLUMN IF NOT EXISTS hero_tagline TEXT,
+  ADD COLUMN IF NOT EXISTS hero_title_line1 TEXT,
+  ADD COLUMN IF NOT EXISTS hero_title_line2 TEXT,
+  ADD COLUMN IF NOT EXISTS hero_description TEXT,
+  ADD COLUMN IF NOT EXISTS hero_button_text TEXT,
+  ADD COLUMN IF NOT EXISTS brand_name TEXT,
+  ADD COLUMN IF NOT EXISTS brand_accent TEXT,
+  ADD COLUMN IF NOT EXISTS brand_sub TEXT,
+  ADD COLUMN IF NOT EXISTS logo_url TEXT,
+  ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}'::jsonb;
+
+-- Insertion ou mise à jour de la ligne 1 des paramètres (préserve l'image de fond si déjà uploadée)
+INSERT INTO settings (
+  id, phone, email, address, hours, site_description,
+  hero_bg_image, hero_tagline, hero_title_line1, hero_title_line2, hero_description, hero_button_text,
+  brand_name, brand_accent, brand_sub, logo_url, social_links
+)
 VALUES (
   1,
-  '{
-    "branding": {
-      "brandName": "CL",
-      "brandAccent": "Paysage",
-      "brandSub": "Paysagiste Concepteur",
-      "logoUrl": "/images/logo.png"
-    },
-    "hero": {
-      "bgImage": "/images/hero.jpg",
-      "tagline": "Atelier de paysage · Conception & Réalisation",
-      "titleLine1": "L''art de façonner",
-      "titleLine2": "vos espaces extérieurs",
-      "description": "Conception sur-mesure, aménagement végétal et harmonie des matières. Nous donnons vie à des jardins d''exception, pensés pour durer et évoluer au fil des saisons.",
-      "buttonText": "Regarder les réalisations"
-    },
-    "phone": "06 00 00 00 00",
-    "email": "contact@clpaysage.fr",
-    "address": "Région et alentours",
-    "hours": "Lun – Ven : 8h – 18h\nSam : sur rendez-vous",
-    "socialLinks": {
-      "instagram": "",
-      "facebook": "",
-      "pinterest": "",
-      "tiktok": ""
-    },
-    "siteDescription": "Conception et aménagement de jardins d''exception. Nous transformons vos extérieurs en espaces de vie uniques."
-  }'::jsonb
+  '06 00 00 00 00',
+  'contact@clpaysage.fr',
+  'Région et alentours',
+  E'Lun – Ven : 8h – 18h\nSam : sur rendez-vous',
+  'Conception et aménagement de jardins d''exception. Nous transformons vos extérieurs en espaces de vie uniques.',
+  COALESCE((SELECT (data->'hero'->>'bgImage') FROM settings WHERE id = 1), '/images/hero.jpg'),
+  'Atelier de paysage · Conception & Réalisation',
+  'L''art de façonner',
+  'vos espaces extérieurs',
+  'Conception sur-mesure, aménagement végétal et harmonie des matières. Nous donnons vie à des jardins d''exception, pensés pour durer et évoluer au fil des saisons.',
+  'Regarder les réalisations',
+  'CL',
+  'Paysage',
+  'Paysagiste Concepteur',
+  '/images/logo.png',
+  '{"instagram": "", "facebook": "", "pinterest": "", "tiktok": ""}'::jsonb
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  phone = COALESCE(settings.phone, EXCLUDED.phone),
+  email = COALESCE(settings.email, EXCLUDED.email),
+  address = COALESCE(settings.address, EXCLUDED.address),
+  hours = COALESCE(settings.hours, EXCLUDED.hours),
+  site_description = COALESCE(settings.site_description, EXCLUDED.site_description),
+  hero_bg_image = COALESCE(settings.hero_bg_image, (settings.data->'hero'->>'bgImage'), EXCLUDED.hero_bg_image),
+  hero_tagline = COALESCE(settings.hero_tagline, EXCLUDED.hero_tagline),
+  hero_title_line1 = COALESCE(settings.hero_title_line1, EXCLUDED.hero_title_line1),
+  hero_title_line2 = COALESCE(settings.hero_title_line2, EXCLUDED.hero_title_line2),
+  hero_description = COALESCE(settings.hero_description, EXCLUDED.hero_description),
+  hero_button_text = COALESCE(settings.hero_button_text, EXCLUDED.hero_button_text),
+  brand_name = COALESCE(settings.brand_name, EXCLUDED.brand_name),
+  brand_accent = COALESCE(settings.brand_accent, EXCLUDED.brand_accent),
+  brand_sub = COALESCE(settings.brand_sub, EXCLUDED.brand_sub),
+  logo_url = COALESCE(settings.logo_url, EXCLUDED.logo_url),
+  updated_at = NOW();
 
 -- 2. Table des Projets / Réalisations
 CREATE TABLE IF NOT EXISTS projects (
