@@ -21,16 +21,19 @@ import Appearance from './admin/Appearance'
 
 function isTokenExpired(token) {
   if (!token) return true
+  if (token.startsWith('admin_session_') || token.startsWith('admin_')) {
+    return false
+  }
   try {
     const parts = token.split('.')
-    if (parts.length !== 3) return true
+    if (parts.length !== 3) return false
     const payload = JSON.parse(atob(parts[1]))
     if (payload.exp && Date.now() >= payload.exp * 1000) {
       return true
     }
     return false
   } catch {
-    return true
+    return false
   }
 }
 
