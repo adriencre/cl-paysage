@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { compressImage } from '../lib/imageCompressor'
 import { fetchAdminSettings, saveAdminSettings } from '../lib/dataSync'
+import { isSupabaseConfigured, uploadPhotoToSupabase } from '../lib/supabase'
 import './Appearance.css'
 
 export default function Appearance({ token }) {
@@ -80,48 +81,66 @@ export default function Appearance({ token }) {
       compressedFile = comp.file
       localDataUrl = comp.dataUrl
 
-      const formData = new FormData()
-      formData.append('photos', compressedFile)
+      let uploadedUrl = null
 
-      const res = await fetch('/api/admin/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      })
-
-      if (res.ok) {
-        const uploaded = await res.json()
-        if (uploaded && uploaded[0] && uploaded[0].url) {
-          const url = uploaded[0].url
-          let updatedForm
-          if (isHero) {
-            updatedForm = {
-              ...form,
-              hero: { ...form.hero, bgImage: url }
-            }
-            setForm(updatedForm)
-          } else {
-            updatedForm = {
-              ...form,
-              branding: { ...form.branding, logoUrl: url }
-            }
-            setForm(updatedForm)
-          }
-
-          // Immediately persist settings to server and local cache
-          const saveRes = await saveAdminSettings(updatedForm, token)
-          if (saveRes.serverSuccess) {
-            showToast(isHero ? 'Nouvelle photo de fond enregistrée sur le serveur !' : 'Nouveau logo enregistré sur le serveur !')
-          } else if (saveRes.isAuthError) {
-            showToast('⚠ Session expirée — veuillez vous reconnecter')
-          } else {
-            showToast('⚠ Erreur lors de l\'enregistrement sur le serveur')
-          }
-          return
+      // 1. Try Supabase Storage CDN first if configured
+      if (isSupabaseConfigured) {
+        try {
+          uploadedUrl = await uploadPhotoToSupabase(compressedFile)
+        } catch (err) {
+          console.warn('[Appearance] Supabase upload fallback to server:', err)
         }
       }
 
-      showToast('Erreur lors du téléversement du fichier')
+      // 2. Fallback to server upload if Supabase is not configured or failed
+      if (!uploadedUrl) {
+        const formData = new FormData()
+        formData.append('photos', compressedFile)
+
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
+
+        if (res.ok) {
+          const uploaded = await res.json()
+          if (uploaded && uploaded[0] && uploaded[0].url) {
+            uploadedUrl = uploaded[0].url
+          }
+        }
+      }
+
+      if (uploadedUrl) {
+        const url = uploadedUrl
+        let updatedForm
+        if (isHero) {
+          updatedForm = {
+            ...form,
+            hero: { ...form.hero, bgImage: url }
+          }
+          setForm(updatedForm)
+        } else {
+          updatedForm = {
+            ...form,
+            branding: { ...form.branding, logoUrl: url }
+          }
+          setForm(updatedForm)
+        }
+
+        // Immediately persist settings
+        const saveRes = await saveAdminSettings(updatedForm, token)
+        if (saveRes.serverSuccess) {
+          showToast(isHero ? 'Nouvelle photo de fond enregistrée !' : 'Nouveau logo enregistré !')
+        } else if (saveRes.isAuthError) {
+          showToast('⚠ Session expirée — veuillez vous reconnecter')
+        } else {
+          showToast('⚠ Erreur lors de l\'enregistrement')
+        }
+        return
+      }
+
+      showToast('Erreur lors du téléversement de l\'image')
     } catch {
       showToast('Erreur lors du traitement du fichier')
     } finally {

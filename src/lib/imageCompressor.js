@@ -1,27 +1,32 @@
 /**
  * Resizes and compresses an image on the client side (especially for mobile photos
- * which can be 5MB - 15MB each) to ensure fast uploads, compliance with Netlify's 6MB
- * limit, and avoiding localStorage 5MB quota errors.
+ * which can be 5MB - 15MB each) with full mobile Safari/Android safety (no black background).
  */
-export async function compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 0.82) {
-  // If not an image, return as-is
-  if (!file.type.startsWith('image/')) {
+export async function compressImage(file, maxWidth = 1920, maxHeight = 1920, quality = 0.85) {
+  if (!file || !file.type.startsWith('image/')) {
     return { file, dataUrl: null }
   }
 
+  // If already lightweight (< 800 Ko), return as-is to avoid unnecessary canvas manipulation
+  if (file.size < 800 * 1024) {
+    const objectUrl = URL.createObjectURL(file)
+    return { file, dataUrl: objectUrl }
+  }
+
   return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.readAsDataURL(file)
+    const objectUrl = URL.createObjectURL(file)
+    const img = new Image()
+    img.src = objectUrl
 
-    reader.onload = (event) => {
-      const img = new Image()
-      img.src = event.target.result
+    img.onload = () => {
+      try {
+        let width = img.naturalWidth || img.width
+        let height = img.naturalHeight || img.height
 
-      img.onload = () => {
-        let width = img.width
-        let height = img.height
+        if (!width || !height) {
+          return resolve({ file, dataUrl: objectUrl })
+        }
 
-        // Calculate new dimensions keeping aspect ratio
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width)
@@ -37,34 +42,44 @@ export async function compressImage(file, maxWidth = 1600, maxHeight = 1600, qua
         const canvas = document.createElement('canvas')
         canvas.width = width
         canvas.height = height
-
         const ctx = canvas.getContext('2d')
+
+        if (!ctx) {
+          return resolve({ file, dataUrl: objectUrl })
+        }
+
+        // Fill background with white to avoid pitch black output when exporting to JPEG on iOS
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, width, height)
         ctx.drawImage(img, 0, 0, width, height)
 
-        // Convert to lightweight JPEG data URL
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
-
-        // Also create a compressed Blob/File for server upload
         canvas.toBlob(
           (blob) => {
-            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, '') + '.jpg', {
+            URL.revokeObjectURL(objectUrl)
+            if (!blob) {
+              return resolve({ file, dataUrl: null })
+            }
+            const cleanName = (file.name || 'photo').replace(/\.[^/.]+$/, '') + '.jpg'
+            const compressedFile = new File([blob], cleanName, {
               type: 'image/jpeg',
               lastModified: Date.now(),
             })
-            resolve({ file: compressedFile, dataUrl: compressedDataUrl })
+            const previewUrl = URL.createObjectURL(blob)
+            resolve({ file: compressedFile, dataUrl: previewUrl })
           },
           'image/jpeg',
           quality
         )
-      }
-
-      img.onerror = () => {
-        // In case of error (corrupt file), fallback to original file
-        resolve({ file, dataUrl: event.target.result })
+      } catch (err) {
+        console.warn('[ImageCompressor] Canvas compression fallback:', err)
+        URL.revokeObjectURL(objectUrl)
+        resolve({ file, dataUrl: null })
       }
     }
 
-    reader.onerror = () => {
+    img.onerror = () => {
+      console.warn('[ImageCompressor] Image load error on mobile')
+      URL.revokeObjectURL(objectUrl)
       resolve({ file, dataUrl: null })
     }
   })

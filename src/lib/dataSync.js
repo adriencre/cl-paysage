@@ -1,5 +1,13 @@
 import defaultProjects from '../../data/projects.json'
 import defaultSettings from '../../data/settings.json'
+import {
+  isSupabaseConfigured,
+  fetchSettingsFromSupabase,
+  saveSettingsToSupabase,
+  fetchProjectsFromSupabase,
+  saveProjectToSupabase,
+  deleteProjectFromSupabase
+} from './supabase'
 
 // Purge any legacy data caches from localStorage to ensure server is single source of truth
 try {
@@ -20,6 +28,16 @@ export function fileToBase64(file) {
 
 // --- Projects ---
 export async function fetchAdminProjects(token) {
+  // 1. Try Supabase cloud database first if configured
+  if (isSupabaseConfigured) {
+    const sbData = await fetchProjectsFromSupabase()
+    if (sbData && sbData.length > 0) {
+      console.log(`%c[CL-Sync] 📁 ${sbData.length} projet(s) chargés depuis Supabase (Cloud)`, 'color: #3ecf8e; font-weight: bold;')
+      return sbData
+    }
+  }
+
+  // 2. Fallback to server API
   try {
     const res = await fetch('/api/admin/projects', {
       headers: { Authorization: `Bearer ${token}` },
@@ -27,7 +45,7 @@ export async function fetchAdminProjects(token) {
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data)) {
-        console.log(`%c[CL-Sync] 📁 ${data.length} projet(s) chargés directement depuis le serveur`, 'color: #10b981; font-weight: bold;')
+        console.log(`%c[CL-Sync] 📁 ${data.length} projet(s) admin chargés depuis l'API`, 'color: #10b981; font-weight: bold;')
         return data
       }
     } else if (res.status === 401 || res.status === 403) {
@@ -47,10 +65,20 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
   let isAuthError = false
   let result = null
 
-  console.log(`%c[CL-Sync] 💾 ${isEdit ? 'Modification' : 'Création'} du projet "${projectData.title || ''}" sur le serveur...`, 'color: #3b82f6; font-weight: bold;')
+  console.log(`%c[CL-Sync] 💾 ${isEdit ? 'Modification' : 'Création'} du projet "${projectData.title || ''}"...`, 'color: #3b82f6; font-weight: bold;')
 
-  // Attempt server save (with one retry on network failure)
-  for (let attempt = 0; attempt < 2 && !savedServer; attempt++) {
+  // 1. Save to Supabase cloud if configured
+  if (isSupabaseConfigured) {
+    const sbSaved = await saveProjectToSupabase(projectData, isEdit, id)
+    if (sbSaved) {
+      savedServer = true
+      result = sbSaved
+      console.log('%c[CL-Sync] ✅ Projet persisté dans Supabase Cloud !', 'color: #3ecf8e; font-weight: bold;')
+    }
+  }
+
+  // 2. Also send to server API
+  for (let attempt = 0; attempt < 2 && (!savedServer || isSupabaseConfigured); attempt++) {
     try {
       const url = isEdit ? `/api/admin/projects/${id}` : '/api/admin/projects'
       const method = isEdit ? 'PUT' : 'POST'
@@ -63,24 +91,18 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
         body: JSON.stringify(projectData),
       })
       if (res.ok) {
-        result = await res.json()
+        result = result || (await res.json())
         savedServer = true
-        console.log('%c[CL-Sync] ✅ Projet enregistré sur le serveur avec succès !', 'color: #10b981; font-weight: bold;')
+        break
       } else if (res.status === 401 || res.status === 403) {
         isAuthError = true
-        console.warn('[CL-Sync] ❌ Token invalide lors de la sauvegarde du projet')
         try {
           window.dispatchEvent(new CustomEvent('admin_auth_failed'))
         } catch {}
         break
-      } else {
-        console.warn(`[CL-Sync] ⚠️ Réponse serveur ${res.status} sur projet (tentative ${attempt + 1})`)
       }
-    } catch (err) {
-      console.warn(`[CL-Sync] ⚠️ Erreur réseau projet (tentative ${attempt + 1}):`, err.message)
-      if (attempt === 0) {
-        await new Promise(r => setTimeout(r, 1000))
-      }
+    } catch {
+      if (savedServer) break
     }
   }
 
@@ -91,39 +113,41 @@ export async function deleteAdminProject(id, token) {
   let serverSuccess = false
   let isAuthError = false
 
-  console.log(`%c[CL-Sync] 🗑️ Suppression du projet id=${id} sur le serveur...`, 'color: #ef4444; font-weight: bold;')
+  console.log(`%c[CL-Sync] 🗑️ Suppression du projet id=${id}...`, 'color: #ef4444; font-weight: bold;')
 
-  for (let attempt = 0; attempt < 2 && !serverSuccess; attempt++) {
-    try {
-      const res = await fetch(`/api/admin/projects/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        serverSuccess = true
-        console.log('%c[CL-Sync] ✅ Projet supprimé du serveur avec succès !', 'color: #10b981;')
-      } else if (res.status === 401 || res.status === 403) {
-        isAuthError = true
-        try {
-          window.dispatchEvent(new CustomEvent('admin_auth_failed'))
-        } catch {}
-        break
-      } else {
-        console.warn(`[CL-Sync] ⚠️ Réponse serveur ${res.status} sur suppression (tentative ${attempt + 1})`)
-      }
-    } catch (err) {
-      console.warn(`[CL-Sync] ⚠️ Erreur réseau suppression (tentative ${attempt + 1}):`, err.message)
-      if (attempt === 0) {
-        await new Promise(r => setTimeout(r, 1000))
-      }
+  // 1. Delete from Supabase if configured
+  if (isSupabaseConfigured) {
+    const sbDel = await deleteProjectFromSupabase(id)
+    if (sbDel) {
+      serverSuccess = true
+      console.log('%c[CL-Sync] ✅ Projet supprimé de Supabase Cloud !', 'color: #3ecf8e;')
     }
   }
+
+  // 2. Also call server API
+  try {
+    const res = await fetch(`/api/admin/projects/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) serverSuccess = true
+  } catch {}
 
   return { success: serverSuccess, serverSuccess, isAuthError }
 }
 
 // --- Settings ---
 export async function fetchAdminSettings(token) {
+  // 1. Try Supabase cloud database first if configured
+  if (isSupabaseConfigured) {
+    const sbSettings = await fetchSettingsFromSupabase()
+    if (sbSettings) {
+      console.log('%c[CL-Sync] ⚙️ Paramètres chargés depuis Supabase (Cloud)', 'color: #3ecf8e; font-weight: bold;', sbSettings)
+      return sbSettings
+    }
+  }
+
+  // 2. Fallback to server API
   try {
     const res = await fetch('/api/settings')
     if (res.ok) {
@@ -136,7 +160,6 @@ export async function fetchAdminSettings(token) {
           hero: { ...(defaultSettings.hero || {}), ...(data.hero || {}) },
           socialLinks: { ...(defaultSettings.socialLinks || {}), ...(data.socialLinks || {}) },
         }
-        console.log('%c[CL-Sync] ⚙️ Paramètres chargés depuis le serveur (zéro localStorage)', 'color: #10b981; font-weight: bold;', merged)
         return merged
       }
     }
@@ -148,9 +171,8 @@ export async function fetchAdminSettings(token) {
 }
 
 export async function saveAdminSettings(settingsData, token) {
-  console.log('%c[CL-Sync] 💾 Sauvegarde directe sur le serveur (zéro localStorage)...', 'color: #3b82f6; font-weight: bold;', settingsData)
+  console.log('%c[CL-Sync] 💾 Sauvegarde des paramètres en cours...', 'color: #3b82f6; font-weight: bold;', settingsData)
 
-  // Fetch fresh settings from server
   const current = await fetchAdminSettings(token)
   const merged = {
     ...current,
@@ -172,42 +194,39 @@ export async function saveAdminSettings(settingsData, token) {
   let serverSuccess = false
   let isAuthError = false
 
-  // Attempt server save (with one retry on network failure)
-  for (let attempt = 0; attempt < 2 && !serverSuccess; attempt++) {
-    try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(merged),
-      })
-      if (res.ok) {
-        serverSuccess = true
-        console.log('%c[CL-Sync] ✅ Paramètres enregistrés sur le SERVEUR avec succès ! (HTTP ' + res.status + ')', 'color: #10b981; font-weight: bold;')
-      } else if (res.status === 401 || res.status === 403) {
-        isAuthError = true
-        console.warn('[CL-Sync] ❌ Session expirée ou jeton invalide')
-        try {
-          window.dispatchEvent(new CustomEvent('admin_auth_failed'))
-        } catch {}
-        break
-      } else {
-        console.warn(`[CL-Sync] ⚠️ Réponse serveur ${res.status} (tentative ${attempt + 1})`)
-      }
-    } catch (err) {
-      console.warn(`[CL-Sync] ⚠️ Connexion impossible (tentative ${attempt + 1}):`, err.message)
-      if (attempt === 0) {
-        await new Promise(r => setTimeout(r, 1000))
-      }
+  // 1. Save to Supabase cloud if configured
+  if (isSupabaseConfigured) {
+    const sbSaved = await saveSettingsToSupabase(merged)
+    if (sbSaved) {
+      serverSuccess = true
+      console.log('%c[CL-Sync] ✅ Paramètres enregistrés dans Supabase Cloud !', 'color: #3ecf8e; font-weight: bold;')
     }
   }
+
+  // 2. Also send to server API
+  try {
+    const res = await fetch('/api/admin/settings', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(merged),
+    })
+    if (res.ok) {
+      serverSuccess = true
+      console.log('%c[CL-Sync] ✅ Paramètres enregistrés sur l\'API serveur !', 'color: #10b981;')
+    } else if (res.status === 401 || res.status === 403) {
+      isAuthError = true
+      try {
+        window.dispatchEvent(new CustomEvent('admin_auth_failed'))
+      } catch {}
+    }
+  } catch {}
 
   // Broadcast settings change in memory to active components
   try {
     window.dispatchEvent(new CustomEvent('cl_settings_updated', { detail: merged }))
-    console.log('%c[CL-Sync] 📢 Événement en mémoire "cl_settings_updated" diffusé', 'color: #8b5cf6;')
   } catch {}
 
   return { success: serverSuccess, serverSuccess, isAuthError, data: merged }

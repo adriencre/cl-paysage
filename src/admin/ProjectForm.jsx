@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fetchAdminProjects, saveAdminProject, fileToBase64 } from '../lib/dataSync'
 import { compressImage } from '../lib/imageCompressor'
+import { isSupabaseConfigured, uploadPhotoToSupabase } from '../lib/supabase'
 import './ProjectForm.css'
 
 const CATEGORIES = [
@@ -86,7 +87,35 @@ export default function ProjectForm({ token, isEdit = false }) {
         }
       }
 
-      // 2. Try server upload with compressed files
+      // 2. Try Supabase Storage CDN first if configured
+      if (isSupabaseConfigured) {
+        try {
+          const uploadedList = []
+          for (let i = 0; i < compressedList.length; i++) {
+            const { file } = compressedList[i]
+            const publicUrl = await uploadPhotoToSupabase(file)
+            uploadedList.push({
+              filename: file.name,
+              url: publicUrl,
+              isMain: form.photos.length === 0 && i === 0,
+              isStatic: false,
+            })
+          }
+          if (uploadedList.length > 0) {
+            setForm(prev => ({
+              ...prev,
+              photos: [...prev.photos, ...uploadedList],
+            }))
+            showToast(`${uploadedList.length} photo${uploadedList.length > 1 ? 's' : ''} ajoutée${uploadedList.length > 1 ? 's' : ''} (CDN)`)
+            setUploading(false)
+            return
+          }
+        } catch (err) {
+          console.warn('[ProjectForm] Supabase upload error, fallback to server:', err)
+        }
+      }
+
+      // 3. Fallback to server upload with compressed files
       try {
         const formData = new FormData()
         compressedList.forEach(({ file }) => formData.append('photos', file))
