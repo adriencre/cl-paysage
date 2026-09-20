@@ -129,6 +129,10 @@ export default function Appearance({ token }) {
             hero: { ...form.hero, bgImage: url }
           }
           setForm(updatedForm)
+          try {
+            localStorage.setItem('cl_hero_bg', url)
+            sessionStorage.setItem('cl_hero_bg', url)
+          } catch {}
         } else {
           updatedForm = {
             ...form,

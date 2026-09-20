@@ -14,22 +14,20 @@ export default function Home() {
     })).slice(0, 3)
   })
 
-  // Récupère immédiatement l'URL personnalisée en session sans JAMAIS flasher l'ancienne image par défaut
-  const getCachedHeroBg = () => {
+  // Récupère immédiatement l'URL personnalisée en cache pour un affichage instantané
+  const getInitialHeroBg = () => {
     try {
-      return sessionStorage.getItem('cl_hero_bg') || null
+      return localStorage.getItem('cl_hero_bg') || sessionStorage.getItem('cl_hero_bg') || defaultSettings.hero.bgImage
     } catch {
-      return null
+      return defaultSettings.hero.bgImage
     }
   }
 
-  const [heroBg, setHeroBg] = useState(getCachedHeroBg)
-  const [imgLoaded, setImgLoaded] = useState(Boolean(getCachedHeroBg()))
   const [settings, setSettings] = useState(() => ({
     ...defaultSettings,
     hero: {
       ...defaultSettings.hero,
-      bgImage: getCachedHeroBg() || '',
+      bgImage: getInitialHeroBg(),
     }
   }))
 
@@ -41,13 +39,16 @@ export default function Home() {
       }
     })
 
-    // 2. Paramètres publics (depuis Supabase Cloud en direct, rapide ~80ms)
+    // 2. Paramètres publics (depuis Supabase Cloud en direct)
     fetchPublicSettings().then(d => {
       if (d && d.hero) {
         setSettings(prev => ({ ...prev, ...d, hero: { ...prev.hero, ...(d.hero || {}) } }))
-        const newBg = d.hero.bgImage || '/images/hero.jpg'
-        setHeroBg(newBg)
-        try { sessionStorage.setItem('cl_hero_bg', newBg) } catch {}
+        if (d.hero.bgImage) {
+          try {
+            localStorage.setItem('cl_hero_bg', d.hero.bgImage)
+            sessionStorage.setItem('cl_hero_bg', d.hero.bgImage)
+          } catch {}
+        }
       }
     })
 
@@ -59,8 +60,10 @@ export default function Home() {
           hero: { ...prev.hero, ...(e.detail.hero || {}) },
         }))
         if (e.detail.hero?.bgImage) {
-          setHeroBg(e.detail.hero.bgImage)
-          try { sessionStorage.setItem('cl_hero_bg', e.detail.hero.bgImage) } catch {}
+          try {
+            localStorage.setItem('cl_hero_bg', e.detail.hero.bgImage)
+            sessionStorage.setItem('cl_hero_bg', e.detail.hero.bgImage)
+          } catch {}
         }
       }
     }
@@ -76,16 +79,10 @@ export default function Home() {
       {/* Hero */}
       <section className="hero" id="hero">
         <div className="hero-bg">
-          {heroBg ? (
-            <img
-              src={heroBg}
-              alt="Jardin paysager d'exception"
-              className={`hero-img-smooth ${imgLoaded ? 'loaded' : 'loading'}`}
-              onLoad={() => setImgLoaded(true)}
-            />
-          ) : (
-            <div className="hero-bg-placeholder" />
-          )}
+          <img
+            src={hero.bgImage || '/images/hero.jpg'}
+            alt="Jardin paysager d'exception"
+          />
         </div>
         <div className="hero-overlay" />
 
