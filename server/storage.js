@@ -22,7 +22,7 @@ function getSafeStore(storeName) {
   }
 }
 
-function readJSONFile(filepath) {
+function readJSONFile(filepath, defaultValue = []) {
   try {
     if (fs.existsSync(filepath)) {
       return JSON.parse(fs.readFileSync(filepath, 'utf-8'))
@@ -30,7 +30,7 @@ function readJSONFile(filepath) {
   } catch (err) {
     console.warn(`[Storage] Could not read ${filepath}:`, err.message)
   }
-  return []
+  return defaultValue
 }
 
 function writeJSONFile(filepath, data) {
@@ -67,12 +67,18 @@ export async function saveProjects(projects) {
   if (store) {
     try {
       await store.setJSON('projects', projects)
-      return
+      return { persisted: true, storage: 'blobs' }
     } catch (err) {
       console.warn('[Storage] Blobs save projects fallback:', err.message)
     }
   }
-  writeJSONFile(projectsFile, projects)
+  try {
+    writeJSONFile(projectsFile, projects)
+    if (fs.existsSync(projectsFile)) {
+      return { persisted: true, storage: 'filesystem' }
+    }
+  } catch {}
+  return { persisted: false, storage: 'memory' }
 }
 
 // --- Settings ---
@@ -82,7 +88,7 @@ export async function getSettings() {
     try {
       const data = await store.get('settings', { type: 'json' })
       if (data) return data
-      const initial = memorySettings || readJSONFile(settingsFile)
+      const initial = memorySettings || readJSONFile(settingsFile, {})
       await store.setJSON('settings', initial).catch(() => {})
       return initial
     } catch (err) {
@@ -91,7 +97,7 @@ export async function getSettings() {
   }
 
   if (memorySettings) return memorySettings
-  memorySettings = readJSONFile(settingsFile)
+  memorySettings = readJSONFile(settingsFile, {})
   return memorySettings
 }
 
@@ -101,12 +107,18 @@ export async function saveSettings(settings) {
   if (store) {
     try {
       await store.setJSON('settings', settings)
-      return
+      return { persisted: true, storage: 'blobs' }
     } catch (err) {
       console.warn('[Storage] Blobs save settings fallback:', err.message)
     }
   }
-  writeJSONFile(settingsFile, settings)
+  try {
+    writeJSONFile(settingsFile, settings)
+    if (fs.existsSync(settingsFile)) {
+      return { persisted: true, storage: 'filesystem' }
+    }
+  } catch {}
+  return { persisted: false, storage: 'memory' }
 }
 
 // --- Photos ---
@@ -119,7 +131,6 @@ export async function savePhoto(filename, buffer, mimetype = 'image/jpeg') {
       await store.set(filename, buffer, {
         metadata: { contentType: mimetype }
       })
-      return `/api/photos/${filename}`
     } catch (err) {
       console.warn('[Storage] Blobs photo save fallback:', err.message)
     }
@@ -131,11 +142,10 @@ export async function savePhoto(filename, buffer, mimetype = 'image/jpeg') {
     }
     const destPath = path.join(uploadsDir, filename)
     fs.writeFileSync(destPath, buffer)
-    return `/uploads/${filename}`
-  } catch {
-    // Read-only filesystem on serverless
-    return `/api/photos/${filename}`
-  }
+  } catch {}
+
+  // Always return /api/photos/:filename for consistent serving across Netlify & local
+  return `/api/photos/${filename}`
 }
 
 export async function getPhoto(filename) {
@@ -185,3 +195,23 @@ export async function deletePhoto(filename) {
     try { fs.unlinkSync(localPath) } catch {}
   }
 }
+
+export async function saveContactMessage(msg) {
+  const entry = {
+    id: 'msg_' + Date.now(),
+    receivedAt: new Date().toISOString(),
+    ...msg
+  }
+  const store = getSafeStore('cl-paysage-data')
+  if (store) {
+    try {
+      const existing = (await store.get('contacts', { type: 'json' })) || []
+      existing.unshift(entry)
+      await store.setJSON('contacts', existing.slice(0, 100))
+    } catch (err) {
+      console.warn('[Storage] Blobs save contact fallback:', err.message)
+    }
+  }
+  return entry
+}
+

@@ -9,6 +9,8 @@ import ProjectDetail from './pages/ProjectDetail'
 import Services from './pages/Services'
 import Contact from './pages/Contact'
 
+import NotFound from './pages/NotFound'
+
 // Admin
 import Login from './admin/Login'
 import AdminLayout from './admin/AdminLayout'
@@ -17,16 +19,94 @@ import ProjectForm from './admin/ProjectForm'
 import Settings from './admin/Settings'
 import Appearance from './admin/Appearance'
 
+function isTokenExpired(token) {
+  if (!token) return true
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return true
+    const payload = JSON.parse(atob(parts[1]))
+    if (payload.exp && Date.now() >= payload.exp * 1000) {
+      return true
+    }
+    return false
+  } catch {
+    return true
+  }
+}
+
 function AdminRoute({ children }) {
-  const [token, setToken] = useState(localStorage.getItem('admin_token'))
+  const [token, setToken] = useState(() => {
+    const saved = localStorage.getItem('admin_token')
+    if (saved && isTokenExpired(saved)) {
+      localStorage.removeItem('admin_token')
+      return null
+    }
+    return saved
+  })
+  const [verifying, setVerifying] = useState(Boolean(token))
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token')
     setToken(null)
   }
 
+  useEffect(() => {
+    if (!token) {
+      setVerifying(false)
+      return
+    }
+
+    if (isTokenExpired(token)) {
+      handleLogout()
+      setVerifying(false)
+      return
+    }
+
+    // Verify token with server
+    let cancelled = false
+    fetch('/api/admin/verify', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        if (cancelled) return
+        if (res.status === 401 || res.status === 403) {
+          handleLogout()
+        }
+      })
+      .catch(() => {
+        // Network error: don't log out immediately if offline, but client JWT isn't expired
+      })
+      .finally(() => {
+        if (!cancelled) setVerifying(false)
+      })
+
+    const onAuthFailed = () => handleLogout()
+    window.addEventListener('admin_auth_failed', onAuthFailed)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('admin_auth_failed', onAuthFailed)
+    }
+  }, [token])
+
   if (!token) {
     return <Login onLogin={setToken} />
+  }
+
+  if (verifying) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: '#1a1f16',
+        color: '#a0b090',
+        fontFamily: 'Inter, sans-serif'
+      }}>
+        Vérification de la session…
+      </div>
+    )
   }
 
   return (
@@ -69,6 +149,9 @@ export default function App() {
           <Route path="/admin/parametres" element={
             <AdminRoute>{({ token }) => <Settings token={token} />}</AdminRoute>
           } />
+
+          {/* 404 Catch-All */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       {!isAdmin && <Footer />}

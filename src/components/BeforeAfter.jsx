@@ -9,7 +9,9 @@ export default function BeforeAfter({ before, after, alt = 'Avant / Après' }) {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
 
   const handleMove = useCallback((clientX) => {
+    if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
+    if (!rect.width) return
     const x = clientX - rect.left
     const pct = Math.max(0, Math.min(100, (x / rect.width) * 100))
     setPosition(pct)

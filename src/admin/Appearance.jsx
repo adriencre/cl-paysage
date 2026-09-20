@@ -93,12 +93,29 @@ export default function Appearance({ token }) {
         const uploaded = await res.json()
         if (uploaded && uploaded[0] && uploaded[0].url) {
           const url = uploaded[0].url
+          let updatedForm
           if (isHero) {
-            updateHero('bgImage', url)
-            showToast('Nouvelle photo de fond chargée !')
+            updatedForm = {
+              ...form,
+              hero: { ...form.hero, bgImage: url }
+            }
+            setForm(updatedForm)
           } else {
-            updateBranding('logoUrl', url)
-            showToast('Nouveau logo chargé !')
+            updatedForm = {
+              ...form,
+              branding: { ...form.branding, logoUrl: url }
+            }
+            setForm(updatedForm)
+          }
+
+          // Immediately persist settings to server and local cache
+          const saveRes = await saveAdminSettings(updatedForm, token)
+          if (saveRes.serverSuccess) {
+            showToast(isHero ? 'Nouvelle photo de fond enregistrée avec succès !' : 'Nouveau logo enregistré avec succès !')
+          } else if (saveRes.isAuthError) {
+            showToast('⚠ Session expirée — photo enregistrée localement uniquement')
+          } else {
+            showToast(isHero ? 'Photo prête (enregistrée localement)' : 'Logo prêt (enregistré localement)')
           }
           return
         }

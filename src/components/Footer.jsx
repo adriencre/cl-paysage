@@ -20,9 +20,12 @@ export default function Footer() {
     window.addEventListener('cl_settings_updated', handleUpdate)
 
     fetch('/api/settings')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to fetch settings')
+        return r.json()
+      })
       .then(d => {
-        if (d && typeof d === 'object') setSettings(prev => ({ ...prev, ...d }))
+        if (d && typeof d === 'object' && !d.error) setSettings(prev => ({ ...prev, ...d }))
       })
       .catch(() => {})
 

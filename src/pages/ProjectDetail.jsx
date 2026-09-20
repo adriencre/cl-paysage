@@ -214,7 +214,7 @@ export default function ProjectDetail() {
                 <div className="detail-gallery-grid">
                   {project.photos.map((photo, i) => (
                     <div
-                      key={i}
+                      key={photo.filename || photo.url || i}
                       className="detail-gallery-item"
                       onClick={() => setLightboxIndex(i)}
                     >

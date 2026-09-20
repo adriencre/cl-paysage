@@ -335,7 +335,7 @@ export default function ProjectForm({ token, isEdit = false }) {
               <div className="photo-grid">
                 {form.photos.map((photo, i) => (
                   <div
-                    key={i}
+                    key={photo.filename || photo.url || i}
                     className={`photo-card${photo.isMain ? ' main' : ''}`}
                     onClick={() => setMainPhoto(i)}
                   >

@@ -5,6 +5,8 @@ import './Contact.css'
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     name: '', email: '', phone: '', type: '', message: '',
   })
@@ -23,9 +25,12 @@ export default function Contact() {
     window.addEventListener('cl_settings_updated', handleUpdate)
 
     fetch('/api/settings')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to fetch settings')
+        return r.json()
+      })
       .then(d => {
-        if (d && typeof d === 'object') setSettings(prev => ({ ...prev, ...d }))
+        if (d && typeof d === 'object' && !d.error) setSettings(prev => ({ ...prev, ...d }))
       })
       .catch(() => {})
 
@@ -36,10 +41,51 @@ export default function Contact() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // In production, send to backend/API
-    setSubmitted(true)
+    setSending(true)
+    setError('')
+
+    try {
+      let sent = false
+
+      // 1. Try sending to Netlify Forms
+      try {
+        const formData = new FormData()
+        formData.append('form-name', 'contact')
+        formData.append('name', form.name)
+        formData.append('email', form.email)
+        formData.append('phone', form.phone || '')
+        formData.append('type', form.type || '')
+        formData.append('message', form.message)
+
+        const netlifyRes = await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(formData).toString(),
+        })
+        if (netlifyRes.ok) sent = true
+      } catch {}
+
+      // 2. Also send to API endpoint (for local dev or fallback)
+      if (!sent) {
+        try {
+          const apiRes = await fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(form),
+          })
+          if (apiRes.ok) sent = true
+        } catch {}
+      }
+
+      setSubmitted(true)
+    } catch (err) {
+      console.error('Contact submission error:', err)
+      setError("Une erreur est survenue lors de l'envoi. Veuillez nous contacter directement par téléphone ou par email.")
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -71,7 +117,34 @@ export default function Contact() {
                     Nous reviendrons vers vous dans les plus brefs délais.
                   </div>
                 ) : (
-                  <form className="contact-form" onSubmit={handleSubmit} id="contact-form">
+                  <form
+                    className="contact-form"
+                    onSubmit={handleSubmit}
+                    id="contact-form"
+                    name="contact"
+                    method="POST"
+                    data-netlify="true"
+                    data-netlify-honeypot="bot-field"
+                  >
+                    <input type="hidden" name="form-name" value="contact" />
+                    <p style={{ display: 'none' }}>
+                      <label>Ne pas remplir: <input name="bot-field" /></label>
+                    </p>
+
+                    {error && (
+                      <div style={{
+                        padding: '1rem',
+                        marginBottom: '1rem',
+                        background: '#fdf2f2',
+                        border: '1px solid #f8b4b4',
+                        color: '#9b1c1c',
+                        fontSize: '0.9rem',
+                        lineHeight: 1.5
+                      }}>
+                        {error}
+                      </div>
+                    )}
+
                     <div className="form-row">
                       <div className="form-group">
                         <label htmlFor="name">Nom complet</label>
@@ -141,8 +214,14 @@ export default function Contact() {
                       />
                     </div>
 
-                    <button type="submit" className="btn btn-primary form-submit" id="submit-btn">
-                      Envoyer le message
+                    <button
+                      type="submit"
+                      className="btn btn-primary form-submit"
+                      id="submit-btn"
+                      disabled={sending}
+                      style={{ opacity: sending ? 0.7 : 1 }}
+                    >
+                      {sending ? 'Envoi en cours…' : 'Envoyer le message'}
                     </button>
                   </form>
                 )}

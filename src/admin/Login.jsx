@@ -13,44 +13,17 @@ export default function Login({ onLogin }) {
 
     const cleanPass = (password || '').trim()
 
-    // 1. Direct validation for the established admin password
-    if (cleanPass === 'clpaysage2026') {
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 2000)
-        const res = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: cleanPass }),
-          signal: controller.signal,
-        })
-        clearTimeout(timeoutId)
-        if (res.ok) {
-          const data = await res.json()
-          if (data.token) {
-            localStorage.setItem('admin_token', data.token)
-            onLogin(data.token)
-            return
-          }
-        }
-      } catch {
-        // Backend offline or timeout
-      }
-
-      // Instant fallback session: guarantee login always succeeds for clpaysage2026
-      const token = 'admin_session_' + Date.now()
-      localStorage.setItem('admin_token', token)
-      onLogin(token)
-      return
-    }
-
-    // 2. Try backend in case a custom password was set
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000)
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: cleanPass }),
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
+
       if (res.ok) {
         const data = await res.json()
         if (data.token) {
@@ -59,9 +32,16 @@ export default function Login({ onLogin }) {
           return
         }
       }
-    } catch {}
 
-    setError('Mot de passe incorrect')
+      setError('Mot de passe incorrect')
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        setError('Le serveur met trop de temps à répondre. Réessayez.')
+      } else {
+        setError('Impossible de contacter le serveur. Vérifiez votre connexion.')
+      }
+    }
+
     setLoading(false)
   }
 

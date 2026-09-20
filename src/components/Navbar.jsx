@@ -37,7 +37,10 @@ export default function Navbar() {
     window.addEventListener('cl_settings_updated', handleUpdate)
 
     fetch('/api/settings')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to fetch settings')
+        return r.json()
+      })
       .then(d => {
         if (d && d.branding) setBranding(d.branding)
       })

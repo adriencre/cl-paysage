@@ -44,9 +44,12 @@ export default function Home() {
       })
 
     fetch('/api/settings')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to fetch settings')
+        return r.json()
+      })
       .then(d => {
-        if (d) {
+        if (d && !d.error) {
           setSettings(prev => ({ ...prev, ...d, hero: { ...prev.hero, ...(d.hero || {}) } }))
           localStorage.setItem('cl_settings', JSON.stringify(d))
         }

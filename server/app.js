@@ -12,7 +12,8 @@ import {
   saveSettings,
   savePhoto,
   getPhoto,
-  deletePhoto
+  deletePhoto,
+  saveContactMessage
 } from './storage.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -21,8 +22,8 @@ const publicDir = path.join(__dirname, '..', 'public')
 
 // Middleware
 app.use(cors())
-app.use(express.json({ limit: '25mb' }))
-app.use(express.urlencoded({ extended: true, limit: '25mb' }))
+app.use(express.json({ limit: '6mb' }))
+app.use(express.urlencoded({ extended: true, limit: '6mb' }))
 app.use('/uploads', express.static(path.join(publicDir, 'uploads')))
 
 function formatPhoto(photo) {
@@ -77,8 +78,8 @@ router.get('/projects/:id', async (req, res) => {
   }
 })
 
-// Serve photo blob
-router.get('/photos/:filename', async (req, res) => {
+// Serve photo blob (supports both /photos/:filename and /uploads/:filename)
+router.get(['/photos/:filename', '/uploads/:filename'], async (req, res) => {
   try {
     const photo = await getPhoto(req.params.filename)
     if (!photo) return res.status(404).send('Photo non trouvée')
@@ -101,6 +102,22 @@ router.get('/settings', async (req, res) => {
   }
 })
 
+// Contact form submission
+router.post('/contact', async (req, res) => {
+  try {
+    const { name, email, phone, type, message } = req.body || {}
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Champs obligatoires manquants (nom, email, message)' })
+    }
+    const saved = await saveContactMessage({ name, email, phone, type, message })
+    console.log(`[Contact] Nouveau message reçu de ${name} (${email})`)
+    res.json({ success: true, message: 'Message reçu avec succès', data: saved })
+  } catch (err) {
+    console.error('Contact error:', err)
+    res.status(500).json({ error: 'Erreur lors de l\'envoi du message' })
+  }
+})
+
 // Login
 router.post('/admin/login', (req, res) => {
   try {
@@ -115,6 +132,11 @@ router.post('/admin/login', (req, res) => {
     console.error('Login error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
+})
+
+// Verify admin token
+router.get('/admin/verify', authMiddleware, (req, res) => {
+  res.json({ valid: true, user: req.user })
 })
 
 // Get all admin projects
@@ -152,8 +174,8 @@ router.post('/admin/projects', authMiddleware, async (req, res) => {
       updatedAt: new Date().toISOString(),
     }
     projects.push(newProject)
-    await saveProjects(projects)
-    res.status(201).json(newProject)
+    const saveResult = await saveProjects(projects)
+    res.status(201).json({ ...newProject, _persisted: saveResult.persisted })
   } catch (err) {
     console.error('Create project error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
@@ -174,8 +196,8 @@ router.put('/admin/projects/:id', authMiddleware, async (req, res) => {
       updatedAt: new Date().toISOString(),
     }
     projects[idx] = updated
-    await saveProjects(projects)
-    res.json(updated)
+    const saveResult = await saveProjects(projects)
+    res.json({ ...updated, _persisted: saveResult.persisted })
   } catch (err) {
     console.error('Update project error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
@@ -196,8 +218,8 @@ router.delete('/admin/projects/:id', authMiddleware, async (req, res) => {
     }
 
     const filtered = projects.filter(p => p.id !== req.params.id)
-    await saveProjects(filtered)
-    res.json({ success: true })
+    const saveResult = await saveProjects(filtered)
+    res.json({ success: true, _persisted: saveResult.persisted })
   } catch (err) {
     console.error('Delete project error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
@@ -226,17 +248,45 @@ router.post('/admin/upload', authMiddleware, upload.array('photos', 20), async (
   }
 })
 
-// Update settings
+// Delete uploaded photo (#18)
+router.delete('/admin/upload/:filename', authMiddleware, async (req, res) => {
+  try {
+    await deletePhoto(req.params.filename)
+    res.json({ success: true })
+  } catch (err) {
+    console.error('Delete photo error:', err)
+    res.status(500).json({ error: 'Erreur suppression' })
+  }
+})
+
+// Update settings — deep merge for nested objects
 router.put('/admin/settings', authMiddleware, async (req, res) => {
   try {
     const current = await getSettings()
-    const updated = { ...current, ...req.body }
-    await saveSettings(updated)
-    res.json(updated)
+    const updated = {
+      ...current,
+      ...req.body,
+      branding: { ...(current.branding || {}), ...(req.body.branding || {}) },
+      hero: { ...(current.hero || {}), ...(req.body.hero || {}) },
+      socialLinks: { ...(current.socialLinks || {}), ...(req.body.socialLinks || {}) },
+    }
+    const saveResult = await saveSettings(updated)
+    res.json({ ...updated, _persisted: saveResult.persisted })
   } catch (err) {
     console.error('Settings error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
+})
+
+// Multer error handler (#15)
+router.use((err, req, res, next) => {
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: 'Fichier trop volumineux (max 20 Mo)' })
+  }
+  if (err && err.message && err.message.includes('Format non supporté')) {
+    return res.status(400).json({ error: err.message })
+  }
+  next(err)
 })
 
 // Mount router on all path representations

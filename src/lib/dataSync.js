@@ -11,34 +11,56 @@ export function fileToBase64(file) {
   })
 }
 
+// Clean helper to remove oversized inline data URLs without corrupting strings
+function stripOversizedDataUrls(projects) {
+  if (!Array.isArray(projects)) return projects
+  return projects.map(p => ({
+    ...p,
+    photos: (p.photos || []).map(ph => {
+      if (ph.url && ph.url.startsWith('data:') && ph.url.length > 30000) {
+        // If filename is present, refer to the uploaded photo URL
+        if (ph.filename) {
+          return { ...ph, url: `/uploads/${ph.filename}` }
+        }
+        return { ...ph, url: '' }
+      }
+      return ph
+    })
+  }))
+}
+
 export function safeSetLocalStorage(key, value) {
   try {
     localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
     return true
   } catch (e) {
-    console.warn(`[Storage] Quota error on ${key}, attempting storage cleanup:`, e.message)
+    console.warn(`[Storage] Quota error on ${key}, cleaning up local cache:`, e.message)
     try {
-      // Free space by trimming base64 URLs from cl_projects
-      const projRaw = localStorage.getItem('cl_projects')
-      if (projRaw) {
-        const parsed = JSON.parse(projRaw)
-        if (Array.isArray(parsed)) {
-          const trimmed = parsed.map((p, idx) => {
-            if (idx === 0) return p
-            return {
-              ...p,
-              photos: (p.photos || []).map(ph => {
-                if (ph.url && ph.url.startsWith('data:') && ph.url.length > 2000) {
-                  return { ...ph, url: ph.url.slice(0, 2000) }
-                }
-                return ph
-              })
-            }
-          })
-          localStorage.setItem('cl_projects', JSON.stringify(trimmed))
+      // 1. Clean existing project caches
+      for (const k of ['cl_projects_admin', 'cl_projects']) {
+        const raw = localStorage.getItem(k)
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw)
+            localStorage.setItem(k, JSON.stringify(stripOversizedDataUrls(parsed)))
+          } catch {}
         }
       }
-      localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
+
+      // 2. Clean current payload if it contains projects
+      let valToStore = value
+      if (Array.isArray(value)) {
+        valToStore = stripOversizedDataUrls(value)
+      } else if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value)
+          if (Array.isArray(parsed)) {
+            valToStore = JSON.stringify(stripOversizedDataUrls(parsed))
+          }
+        } catch {}
+      }
+
+      localStorage.setItem(key, typeof valToStore === 'string' ? valToStore : JSON.stringify(valToStore))
       return true
     } catch {
       return false
@@ -55,14 +77,24 @@ export async function fetchAdminProjects(token) {
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
+        safeSetLocalStorage('cl_projects_admin', data)
         safeSetLocalStorage('cl_projects', data)
         return data
       }
+    } else if (res.status === 401 || res.status === 403) {
+      try {
+        window.dispatchEvent(new CustomEvent('admin_auth_failed'))
+      } catch {}
     }
   } catch (err) {
     console.warn('[Sync] Backend API offline, using local storage cache')
   }
 
+  // Check admin cache first, then public cache, then defaults
+  const savedAdmin = localStorage.getItem('cl_projects_admin')
+  if (savedAdmin) {
+    try { return JSON.parse(savedAdmin) } catch {}
+  }
   const saved = localStorage.getItem('cl_projects')
   if (saved) {
     try { return JSON.parse(saved) } catch {}
@@ -91,9 +123,12 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
       if (res.ok) {
         result = await res.json()
         savedServer = true
-      } else if (res.status === 401) {
+      } else if (res.status === 401 || res.status === 403) {
         isAuthError = true
         console.warn('[Sync] Token invalid or expired during project save')
+        try {
+          window.dispatchEvent(new CustomEvent('admin_auth_failed'))
+        } catch {}
         break
       } else {
         console.warn(`[Sync] Server returned ${res.status} on project save (attempt ${attempt + 1})`)
@@ -107,7 +142,7 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
     }
   }
 
-  // Always update local cache so the UI stays responsive
+  // Update local cache so the UI stays responsive
   const current = await fetchAdminProjects(token)
   let updatedList = [...current]
   if (isEdit) {
@@ -129,12 +164,20 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
     result = newProj
   }
 
-  safeSetLocalStorage('cl_projects', updatedList)
+  // Save to admin cache
+  safeSetLocalStorage('cl_projects_admin', updatedList)
+
+  // Only sync to public cache if server confirmed or offline fallback with valid project
+  if (savedServer) {
+    safeSetLocalStorage('cl_projects', updatedList)
+  }
+
   return { success: true, serverSuccess: savedServer, isAuthError, data: result }
 }
 
 export async function deleteAdminProject(id, token) {
   let serverSuccess = false
+  let isAuthError = false
 
   for (let attempt = 0; attempt < 2 && !serverSuccess; attempt++) {
     try {
@@ -144,6 +187,12 @@ export async function deleteAdminProject(id, token) {
       })
       if (res.ok) {
         serverSuccess = true
+      } else if (res.status === 401 || res.status === 403) {
+        isAuthError = true
+        try {
+          window.dispatchEvent(new CustomEvent('admin_auth_failed'))
+        } catch {}
+        break
       } else {
         console.warn(`[Sync] Server returned ${res.status} on project delete (attempt ${attempt + 1})`)
       }
@@ -157,8 +206,12 @@ export async function deleteAdminProject(id, token) {
 
   const current = await fetchAdminProjects(token)
   const filtered = current.filter(p => p.id !== id)
-  safeSetLocalStorage('cl_projects', filtered)
-  return { success: true, serverSuccess }
+  safeSetLocalStorage('cl_projects_admin', filtered)
+  if (serverSuccess) {
+    safeSetLocalStorage('cl_projects', filtered)
+  }
+
+  return { success: true, serverSuccess, isAuthError }
 }
 
 // --- Settings ---
@@ -173,7 +226,7 @@ export async function fetchAdminSettings(token) {
     const res = await fetch('/api/settings')
     if (res.ok) {
       const data = await res.json()
-      if (data && typeof data === 'object') {
+      if (data && typeof data === 'object' && !data.error) {
         const merged = {
           ...defaultSettings,
           ...cached,
@@ -229,9 +282,12 @@ export async function saveAdminSettings(settingsData, token) {
       })
       if (res.ok) {
         serverSuccess = true
-      } else if (res.status === 401) {
+      } else if (res.status === 401 || res.status === 403) {
         isAuthError = true
         console.warn('[Sync] Token invalid or expired during save')
+        try {
+          window.dispatchEvent(new CustomEvent('admin_auth_failed'))
+        } catch {}
         break
       } else {
         console.warn(`[Sync] Server returned ${res.status} on settings save (attempt ${attempt + 1})`)
@@ -244,7 +300,7 @@ export async function saveAdminSettings(settingsData, token) {
     }
   }
 
-  // Always persist to local browser storage so the site updates immediately
+  // Persist to local browser storage
   safeSetLocalStorage('cl_settings', merged)
 
   // Broadcast settings change to all active components

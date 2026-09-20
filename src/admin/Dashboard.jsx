@@ -15,7 +15,7 @@ export default function Dashboard({ token }) {
     setLoading(false)
   }
 
-  useEffect(() => { loadProjects() }, [])
+  useEffect(() => { loadProjects() }, [token])
 
   const handleDelete = async (id, title) => {
     if (!window.confirm(`Supprimer le projet "${title}" ? Cette action est irréversible.`)) return
@@ -86,7 +86,7 @@ export default function Dashboard({ token }) {
                   <div className="dashboard-item-meta">
                     {p.category && <span>{p.category}</span>}
                     {p.location && <span>· {p.location}</span>}
-                    {p.photos.length > 0 && <span>· {p.photos.length} photo{p.photos.length > 1 ? 's' : ''}</span>}
+                    {(p.photos || []).length > 0 && <span>· {(p.photos || []).length} photo{(p.photos || []).length > 1 ? 's' : ''}</span>}
                   </div>
                 </div>
 
