@@ -1,10 +1,10 @@
 [
   {
     "id": "projet-1",
-    "title": "Jardin méditerranéen",
-    "description": "Aménagement complet d'un jardin méditerranéen avec terrasse en pierre naturelle, pergola végétalisée et plantations de lavande, romarin et oliviers. Un espace de vie extérieur pensé pour profiter du climat doux toute l'année.",
+    "title": "Jardin contemporain & terrasse",
+    "description": "Aménagement paysager complet d'un jardin de villa à Villeneuve d'Ascq : création d'une terrasse en bois naturel, pergola bioclimatique, massifs de vivaces et graminées adaptées au climat du Nord, et éclairage d'ambiance nocturne.",
     "category": "amenagement",
-    "location": "Région Sud",
+    "location": "Villeneuve d'Ascq (Brigode)",
     "date": "2024-06",
     "photos": [
       {
@@ -29,10 +29,10 @@
   },
   {
     "id": "projet-2",
-    "title": "Jardin zen japonais",
-    "description": "Création d'un jardin d'inspiration japonaise avec pas japonais en pierre, bambous, mousse, érable du Japon et fontaine tsukubai. Un havre de paix et de méditation au cœur de la ville.",
+    "title": "Jardin zen & pas japonais",
+    "description": "Création d'un espace zen et intimiste avec pas japonais en pierre naturelle, bambous non traçants, érable du Japon et fontaine discrète. Idéal pour un havre de paix en cœur de métropole lilloise.",
     "category": "jardin",
-    "location": "Région Centre",
+    "location": "Croix (Parc Barbieux)",
     "date": "2024-03",
     "photos": [
       {
@@ -52,10 +52,10 @@
   },
   {
     "id": "projet-3",
-    "title": "Aménagement contemporain",
-    "description": "Conception et réalisation d'un espace extérieur contemporain alliant lignes épurées, graminées ornementales et éclairage paysager. Terrasse en dalles grand format et mobilier design pour un rendu moderne et élégant.",
+    "title": "Terrasse dalles grand format & allée pavée",
+    "description": "Conception et pose d'une terrasse contemporaine en grès cérame sur plots avec allée pavée carrossable, bordures de propreté et massifs géométriques faciles d'entretien.",
     "category": "terrasse",
-    "location": "Région Ouest",
+    "location": "Marcq-en-Barœul",
     "date": "2024-01",
     "photos": [
       {
@@ -75,10 +75,10 @@
   },
   {
     "id": "projet-4",
-    "title": "Jardin fleuri et pelouse",
-    "description": "Création d'un jardin classique avec pelouse parfaite, massifs fleuris et haies taillées. Un jardin de charme avec pergola et éclairage d'ambiance pour les soirées d'été.",
-    "category": "jardin",
-    "location": "Région Nord",
+    "title": "Remise en état & engazonnement soigné",
+    "description": "Remise en état complète d'un jardin arboré : taille de haies denses de lauriers et thuyas, désherbage méticuleux, apport de terre végétale et semis d'une pelouse rustique résistante.",
+    "category": "entretien",
+    "location": "Hem (Valfleury)",
     "date": "2023-09",
     "photos": [
       {

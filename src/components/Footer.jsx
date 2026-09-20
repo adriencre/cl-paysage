@@ -48,17 +48,29 @@ export default function Footer() {
             <h4 className="footer-heading">Navigation</h4>
             <div className="footer-links">
               <Link to="/">Accueil</Link>
-              <Link to="/realisations">Réalisations</Link>
-              <Link to="/services">Services</Link>
-              <Link to="/contact">Contact</Link>
+              <Link to="/services">Services &amp; Jardinage</Link>
+              <Link to="/realisations">Nos Réalisations</Link>
+              <Link to="/contact">Devis Gratuit</Link>
             </div>
           </div>
 
           <div className="footer-col">
-            <h4 className="footer-heading">Contact</h4>
+            <h4 className="footer-heading">Secteurs couverts</h4>
+            <div className="footer-links" style={{ fontSize: '0.86rem', color: 'var(--c-gray-light)', lineHeight: 1.6 }}>
+              <p>• Villeneuve d'Ascq (59650)</p>
+              <p>• Croix &amp; Hem</p>
+              <p>• Marcq-en-Barœul</p>
+              <p>• Wasquehal &amp; Mouvaux</p>
+              <p>• Lille &amp; Métropole (MEL)</p>
+            </div>
+          </div>
+
+          <div className="footer-col">
+            <h4 className="footer-heading">Contact direct</h4>
             <div className="footer-links">
               <a href={`tel:${phone.replace(/[^0-9+]/g, '')}`}>{phone}</a>
               <a href={`mailto:${email}`}>{email}</a>
+              <span style={{ fontSize: '0.84rem', color: 'var(--c-gray)' }}>Villeneuve d'Ascq &amp; environs</span>
             </div>
           </div>
         </div>

@@ -6,8 +6,8 @@
 
 .footer-inner {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: var(--s-xl);
+  grid-template-columns: 1.6fr 0.8fr 1.2fr 1fr;
+  gap: var(--s-lg);
   margin-bottom: var(--s-xl);
 }
 

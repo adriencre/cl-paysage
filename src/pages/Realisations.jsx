@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import defaultProjects from '../../data/projects.json'
 import { fetchPublicProjects } from '../lib/dataSync'
 import FadeIn from '../components/FadeIn'
+import { usePageSeo } from '../hooks/usePageSeo'
 import './Realisations.css'
 
 const CATEGORIES = [
@@ -30,6 +31,12 @@ function formatDate(dateStr) {
 }
 
 export default function Realisations() {
+  usePageSeo({
+    title: "Nos Réalisations Paysagères à Villeneuve d'Ascq & Métropole Lilloise | CL Paysage",
+    description: "Découvrez nos chantiers d'aménagement paysager, créations de terrasses et entretien de jardins à Villeneuve d'Ascq, Croix, Marcq-en-Barœul et métropole lilloise.",
+    canonical: "https://clpaysage.fr/realisations"
+  })
+
   const [projects, setProjects] = useState([])
   const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)

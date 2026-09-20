@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import defaultProjects from '../../data/projects.json'
 import FadeIn from '../components/FadeIn'
 import Lightbox from '../components/Lightbox'
+import { usePageSeo } from '../hooks/usePageSeo'
 import './ProjectDetail.css'
 
 const CATEGORY_LABELS = {
@@ -52,6 +53,15 @@ export default function ProjectDetail() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [lightboxIndex, setLightboxIndex] = useState(null)
+
+  const currentProject = data?.project
+  usePageSeo({
+    title: currentProject
+      ? `${currentProject.title} à ${currentProject.location || "Villeneuve d'Ascq"} | CL Paysage`
+      : "Réalisation Paysagère | CL Paysage",
+    description: currentProject?.description || "Projet paysager et aménagement d'extérieur à Villeneuve d'Ascq et alentours.",
+    canonical: `https://clpaysage.fr/realisations/${id}`
+  })
 
   useEffect(() => {
     setLoading(true)

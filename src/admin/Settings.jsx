@@ -119,7 +119,7 @@ export default function Settings({ token }) {
               type="text"
               value={form.address}
               onChange={(e) => updateField('address', e.target.value)}
-              placeholder="Lyon et sa région"
+              placeholder="Villeneuve d'Ascq et métropole lilloise"
             />
           </div>
 
