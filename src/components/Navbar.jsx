@@ -13,20 +13,11 @@ const links = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [branding, setBranding] = useState(() => {
-    const saved = localStorage.getItem('cl_settings')
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        if (parsed && parsed.branding) return parsed.branding
-      } catch {}
-    }
-    return defaultSettings.branding || {
-      brandName: 'CL',
-      brandAccent: 'Paysage',
-      brandSub: 'Paysagiste Concepteur',
-      logoUrl: '/images/logo.png',
-    }
+  const [branding, setBranding] = useState(defaultSettings.branding || {
+    brandName: 'CL',
+    brandAccent: 'Paysage',
+    brandSub: 'Paysagiste Concepteur',
+    logoUrl: '/images/logo.png',
   })
   const location = useLocation()
 

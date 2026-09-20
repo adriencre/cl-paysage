@@ -111,36 +111,19 @@ export default function Appearance({ token }) {
           // Immediately persist settings to server and local cache
           const saveRes = await saveAdminSettings(updatedForm, token)
           if (saveRes.serverSuccess) {
-            showToast(isHero ? 'Nouvelle photo de fond enregistrée avec succès !' : 'Nouveau logo enregistré avec succès !')
+            showToast(isHero ? 'Nouvelle photo de fond enregistrée sur le serveur !' : 'Nouveau logo enregistré sur le serveur !')
           } else if (saveRes.isAuthError) {
-            showToast('⚠ Session expirée — photo enregistrée localement uniquement')
+            showToast('⚠ Session expirée — veuillez vous reconnecter')
           } else {
-            showToast(isHero ? 'Photo prête (enregistrée localement)' : 'Logo prêt (enregistré localement)')
+            showToast('⚠ Erreur lors de l\'enregistrement sur le serveur')
           }
           return
         }
       }
 
-      // Fallback: use compressed base64 dataUrl directly if upload failed or offline
-      if (localDataUrl) {
-        if (isHero) {
-          updateHero('bgImage', localDataUrl)
-          showToast('Photo de fond prête !')
-        } else {
-          updateBranding('logoUrl', localDataUrl)
-          showToast('Logo prêt !')
-        }
-      } else {
-        showToast('Erreur lors du traitement du fichier')
-      }
+      showToast('Erreur lors du téléversement du fichier')
     } catch {
-      if (localDataUrl) {
-        if (isHero) updateHero('bgImage', localDataUrl)
-        else updateBranding('logoUrl', localDataUrl)
-        showToast('Photo prête (mode hors-ligne)')
-      } else {
-        showToast('Erreur lors du traitement du fichier')
-      }
+      showToast('Erreur lors du traitement du fichier')
     } finally {
       if (isHero) setUploadingHero(false)
       else setUploadingLogo(false)
@@ -155,11 +138,11 @@ export default function Appearance({ token }) {
       const result = await saveAdminSettings(form, token)
       if (result.success) {
         if (result.serverSuccess) {
-          showToast('Apparence mise à jour avec succès !')
+          showToast('Apparence enregistrée sur le serveur avec succès !')
         } else if (result.isAuthError) {
-          showToast('⚠ Session expirée — modifications enregistrées localement uniquement')
+          showToast('⚠ Session expirée — veuillez vous reconnecter')
         } else {
-          showToast('⚠ Serveur injoignable — modifications enregistrées localement uniquement')
+          showToast('⚠ Erreur lors de l\'enregistrement sur le serveur')
         }
       } else {
         showToast('Erreur lors de la sauvegarde')

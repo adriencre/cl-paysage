@@ -73,20 +73,7 @@ export default function ProjectDetail() {
       return { project: enriched, prev, next }
     }
 
-    // 1. Check local storage cache
-    const saved = localStorage.getItem('cl_projects')
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        const localFound = findInList(parsed)
-        if (localFound) {
-          setData(localFound)
-          setLoading(false)
-        }
-      } catch {}
-    }
-
-    // 2. Fetch from server
+    // Fetch directly from server with defaultProjects fallback
     fetch(`/api/projects/${id}`)
       .then(r => {
         if (!r.ok) throw new Error('Not found')
@@ -96,10 +83,8 @@ export default function ProjectDetail() {
         if (d && d.project) setData(d)
       })
       .catch(() => {
-        if (!saved) {
-          const defFound = findInList(defaultProjects)
-          setData(defFound)
-        }
+        const defFound = findInList(defaultProjects)
+        setData(defFound)
       })
       .finally(() => setLoading(false))
   }, [id])

@@ -59,11 +59,11 @@ export default function Settings({ token }) {
       if (result.success) {
         setSaved(true)
         if (result.serverSuccess) {
-          showToast('Paramètres enregistrés avec succès !')
+          showToast('Paramètres enregistrés sur le serveur avec succès !')
         } else if (result.isAuthError) {
-          showToast('⚠ Session expirée — paramètres sauvegardés dans votre navigateur uniquement')
+          showToast('⚠ Session expirée — veuillez vous reconnecter')
         } else {
-          showToast('⚠ Serveur injoignable — paramètres sauvegardés dans votre navigateur uniquement')
+          showToast('⚠ Erreur lors de l\'enregistrement sur le serveur')
         }
         setTimeout(() => setSaved(false), 3000)
       } else {

@@ -5,13 +5,7 @@ import './Footer.css'
 
 export default function Footer() {
   const year = new Date().getFullYear()
-  const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('cl_settings')
-    if (saved) {
-      try { return { ...defaultSettings, ...JSON.parse(saved) } } catch {}
-    }
-    return defaultSettings
-  })
+  const [settings, setSettings] = useState(defaultSettings)
 
   useEffect(() => {
     const handleUpdate = (e) => {

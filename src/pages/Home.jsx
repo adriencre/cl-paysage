@@ -6,22 +6,15 @@ import FadeIn from '../components/FadeIn'
 import './Home.css'
 
 export default function Home() {
-  const [projects, setProjects] = useState([])
+  const [projects, setProjects] = useState(() => {
+    return defaultProjects.map(p => ({
+      ...p,
+      photos: (p.photos || []).map(ph => ({ ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }))
+    })).slice(0, 3)
+  })
   const [settings, setSettings] = useState(defaultSettings)
 
   useEffect(() => {
-    const savedProjects = localStorage.getItem('cl_projects')
-    if (savedProjects) {
-      try { setProjects(JSON.parse(savedProjects).slice(0, 3)) } catch {}
-    }
-    const savedSettings = localStorage.getItem('cl_settings')
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings)
-        setSettings(prev => ({ ...prev, ...parsed, hero: { ...prev.hero, ...(parsed.hero || {}) } }))
-      } catch {}
-    }
-
     fetch('/api/projects')
       .then(r => {
         if (!r.ok) throw new Error('API offline')
@@ -30,18 +23,9 @@ export default function Home() {
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setProjects(data.slice(0, 3))
-          localStorage.setItem('cl_projects', JSON.stringify(data))
         }
       })
-      .catch(() => {
-        if (!savedProjects) {
-          const formatted = defaultProjects.map(p => ({
-            ...p,
-            photos: p.photos.map(ph => ({ ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }))
-          }))
-          setProjects(formatted.slice(0, 3))
-        }
-      })
+      .catch(() => {})
 
     fetch('/api/settings')
       .then(r => {
@@ -51,7 +35,6 @@ export default function Home() {
       .then(d => {
         if (d && !d.error) {
           setSettings(prev => ({ ...prev, ...d, hero: { ...prev.hero, ...(d.hero || {}) } }))
-          localStorage.setItem('cl_settings', JSON.stringify(d))
         }
       })
       .catch(() => {})

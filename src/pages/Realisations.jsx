@@ -34,42 +34,25 @@ export default function Realisations() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 1. Check local storage cache first
-    const saved = localStorage.getItem('cl_projects')
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const published = parsed.filter(p => p.published)
-          setProjects(published)
-          setLoading(false)
-        }
-      } catch {}
-    }
-
-    // 2. Fetch latest from API
     fetch('/api/projects')
       .then(r => {
         if (!r.ok) throw new Error('API offline')
         return r.json()
       })
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setProjects(data)
-          localStorage.setItem('cl_projects', JSON.stringify(data))
         }
       })
       .catch(() => {
-        if (!saved) {
-          const formatted = defaultProjects.map(p => ({
-            ...p,
-            photos: (p.photos || []).map(ph => ({
-              ...ph,
-              url: ph.url || (ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}`)
-            }))
+        const formatted = defaultProjects.map(p => ({
+          ...p,
+          photos: (p.photos || []).map(ph => ({
+            ...ph,
+            url: ph.url || (ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}`)
           }))
-          setProjects(formatted)
-        }
+        }))
+        setProjects(formatted)
       })
       .finally(() => setLoading(false))
   }, [])

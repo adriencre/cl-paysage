@@ -10,13 +10,7 @@ export default function Contact() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', type: '', message: '',
   })
-  const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('cl_settings')
-    if (saved) {
-      try { return { ...defaultSettings, ...JSON.parse(saved) } } catch {}
-    }
-    return defaultSettings
-  })
+  const [settings, setSettings] = useState(defaultSettings)
 
   useEffect(() => {
     const handleUpdate = (e) => {
