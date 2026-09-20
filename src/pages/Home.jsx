@@ -11,7 +11,7 @@ export default function Home() {
   usePageSeo({
     title: "CL Paysage — Paysagiste & Jardinier à Villeneuve d'Ascq (59) | Entretien & Aménagement",
     description: "CL Paysage, artisan paysagiste à Villeneuve d'Ascq et métropole lilloise (Hem, Croix, Marcq-en-Barœul...). Jardinage, entretien de jardin, tonte, taille de haies & aménagements d'exception. Devis gratuit.",
-    canonical: "https://clpaysage.fr/"
+    canonical: "https://cl-paysage.com/"
   })
 
   const [projects, setProjects] = useState(() => {

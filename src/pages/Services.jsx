@@ -69,7 +69,7 @@ export default function Services() {
   usePageSeo({
     title: "Services Paysagiste & Jardinage à Villeneuve d'Ascq | Tonte, Taille, Création",
     description: "Services de paysagiste et jardinage à Villeneuve d'Ascq et alentours : conception paysagère, aménagement extérieur, entretien de jardin, terrasses et allées. Devis gratuit.",
-    canonical: "https://clpaysage.fr/services"
+    canonical: "https://cl-paysage.com/services"
   })
 
   return (

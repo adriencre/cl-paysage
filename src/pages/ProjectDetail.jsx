@@ -60,7 +60,7 @@ export default function ProjectDetail() {
       ? `${currentProject.title} à ${currentProject.location || "Villeneuve d'Ascq"} | CL Paysage`
       : "Réalisation Paysagère | CL Paysage",
     description: currentProject?.description || "Projet paysager et aménagement d'extérieur à Villeneuve d'Ascq et alentours.",
-    canonical: `https://clpaysage.fr/realisations/${id}`
+    canonical: `https://cl-paysage.com/realisations/${id}`
   })
 
   useEffect(() => {

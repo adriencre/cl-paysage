@@ -9,7 +9,7 @@ export default function Contact() {
   usePageSeo({
     title: "Contact & Devis Gratuit | CL Paysage — Paysagiste Villeneuve d'Ascq",
     description: "Contactez CL Paysage pour votre projet de jardinage ou aménagement paysager à Villeneuve d'Ascq et alentours. Devis gratuit et sans engagement.",
-    canonical: "https://clpaysage.fr/contact"
+    canonical: "https://cl-paysage.com/contact"
   })
 
   const [submitted, setSubmitted] = useState(false)

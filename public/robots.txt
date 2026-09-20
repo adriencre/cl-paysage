@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/*
 
-Sitemap: https://clpaysage.fr/sitemap.xml
+Sitemap: https://cl-paysage.com/sitemap.xml
