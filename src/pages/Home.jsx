@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import defaultProjects from '../../data/projects.json'
 import defaultSettings from '../../data/settings.json'
+import { fetchPublicSettings, fetchPublicProjects } from '../lib/dataSync'
 import FadeIn from '../components/FadeIn'
 import './Home.css'
 
@@ -12,32 +13,43 @@ export default function Home() {
       photos: (p.photos || []).map(ph => ({ ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }))
     })).slice(0, 3)
   })
-  const [settings, setSettings] = useState(defaultSettings)
+
+  // Récupère immédiatement l'URL personnalisée en session sans JAMAIS flasher l'ancienne image par défaut
+  const getCachedHeroBg = () => {
+    try {
+      return sessionStorage.getItem('cl_hero_bg') || null
+    } catch {
+      return null
+    }
+  }
+
+  const [heroBg, setHeroBg] = useState(getCachedHeroBg)
+  const [imgLoaded, setImgLoaded] = useState(Boolean(getCachedHeroBg()))
+  const [settings, setSettings] = useState(() => ({
+    ...defaultSettings,
+    hero: {
+      ...defaultSettings.hero,
+      bgImage: getCachedHeroBg() || '',
+    }
+  }))
 
   useEffect(() => {
-    fetch('/api/projects')
-      .then(r => {
-        if (!r.ok) throw new Error('API offline')
-        return r.json()
-      })
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setProjects(data.slice(0, 3))
-        }
-      })
-      .catch(() => {})
+    // 1. Projets publics (depuis Supabase Cloud en priorité)
+    fetchPublicProjects().then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        setProjects(data.slice(0, 3))
+      }
+    })
 
-    fetch('/api/settings')
-      .then(r => {
-        if (!r.ok) throw new Error('Failed to fetch settings')
-        return r.json()
-      })
-      .then(d => {
-        if (d && !d.error) {
-          setSettings(prev => ({ ...prev, ...d, hero: { ...prev.hero, ...(d.hero || {}) } }))
-        }
-      })
-      .catch(() => {})
+    // 2. Paramètres publics (depuis Supabase Cloud en direct, rapide ~80ms)
+    fetchPublicSettings().then(d => {
+      if (d && d.hero) {
+        setSettings(prev => ({ ...prev, ...d, hero: { ...prev.hero, ...(d.hero || {}) } }))
+        const newBg = d.hero.bgImage || '/images/hero.jpg'
+        setHeroBg(newBg)
+        try { sessionStorage.setItem('cl_hero_bg', newBg) } catch {}
+      }
+    })
 
     const handleUpdate = (e) => {
       if (e.detail) {
@@ -46,6 +58,10 @@ export default function Home() {
           ...e.detail,
           hero: { ...prev.hero, ...(e.detail.hero || {}) },
         }))
+        if (e.detail.hero?.bgImage) {
+          setHeroBg(e.detail.hero.bgImage)
+          try { sessionStorage.setItem('cl_hero_bg', e.detail.hero.bgImage) } catch {}
+        }
       }
     }
     window.addEventListener('cl_settings_updated', handleUpdate)
@@ -60,7 +76,16 @@ export default function Home() {
       {/* Hero */}
       <section className="hero" id="hero">
         <div className="hero-bg">
-          <img src={hero.bgImage || '/images/hero.jpg'} alt="Jardin paysager d'exception" />
+          {heroBg ? (
+            <img
+              src={heroBg}
+              alt="Jardin paysager d'exception"
+              className={`hero-img-smooth ${imgLoaded ? 'loaded' : 'loading'}`}
+              onLoad={() => setImgLoaded(true)}
+            />
+          ) : (
+            <div className="hero-bg-placeholder" />
+          )}
         </div>
         <div className="hero-overlay" />
 

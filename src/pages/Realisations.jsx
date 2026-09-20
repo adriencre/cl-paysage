@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import defaultProjects from '../../data/projects.json'
+import { fetchPublicProjects } from '../lib/dataSync'
 import FadeIn from '../components/FadeIn'
 import './Realisations.css'
 
@@ -34,26 +35,15 @@ export default function Realisations() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/projects')
-      .then(r => {
-        if (!r.ok) throw new Error('API offline')
-        return r.json()
-      })
+    fetchPublicProjects()
       .then(data => {
         if (Array.isArray(data)) {
           setProjects(data)
+        } else {
+          setProjects(defaultProjects)
         }
       })
-      .catch(() => {
-        const formatted = defaultProjects.map(p => ({
-          ...p,
-          photos: (p.photos || []).map(ph => ({
-            ...ph,
-            url: ph.url || (ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}`)
-          }))
-        }))
-        setProjects(formatted)
-      })
+      .catch(() => setProjects(defaultProjects))
       .finally(() => setLoading(false))
   }, [])
 

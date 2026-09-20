@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import defaultSettings from '../../data/settings.json'
+import { fetchPublicSettings } from '../lib/dataSync'
 import './Footer.css'
 
 export default function Footer() {
@@ -13,11 +14,7 @@ export default function Footer() {
     }
     window.addEventListener('cl_settings_updated', handleUpdate)
 
-    fetch('/api/settings')
-      .then(r => {
-        if (!r.ok) throw new Error('Failed to fetch settings')
-        return r.json()
-      })
+    fetchPublicSettings()
       .then(d => {
         if (d && typeof d === 'object' && !d.error) setSettings(prev => ({ ...prev, ...d }))
       })

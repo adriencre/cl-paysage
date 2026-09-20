@@ -137,12 +137,15 @@ export async function deleteAdminProject(id, token) {
 }
 
 // --- Settings ---
-export async function fetchAdminSettings(token) {
+// Public read settings with instant session cache for hero image to prevent any flash
+export async function fetchPublicSettings() {
   // 1. Try Supabase cloud database first if configured
   if (isSupabaseConfigured) {
     const sbSettings = await fetchSettingsFromSupabase()
     if (sbSettings) {
-      console.log('%c[CL-Sync] ⚙️ Paramètres chargés depuis Supabase (Cloud)', 'color: #3ecf8e; font-weight: bold;', sbSettings)
+      if (sbSettings.hero?.bgImage) {
+        try { sessionStorage.setItem('cl_hero_bg', sbSettings.hero.bgImage) } catch {}
+      }
       return sbSettings
     }
   }
@@ -160,6 +163,9 @@ export async function fetchAdminSettings(token) {
           hero: { ...(defaultSettings.hero || {}), ...(data.hero || {}) },
           socialLinks: { ...(defaultSettings.socialLinks || {}), ...(data.socialLinks || {}) },
         }
+        if (merged.hero?.bgImage) {
+          try { sessionStorage.setItem('cl_hero_bg', merged.hero.bgImage) } catch {}
+        }
         return merged
       }
     }
@@ -169,6 +175,29 @@ export async function fetchAdminSettings(token) {
 
   return defaultSettings
 }
+
+export async function fetchPublicProjects() {
+  if (isSupabaseConfigured) {
+    const sbData = await fetchProjectsFromSupabase()
+    if (sbData && sbData.length > 0) {
+      return sbData
+    }
+  }
+
+  try {
+    const res = await fetch('/api/projects')
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        return data
+      }
+    }
+  } catch {}
+
+  return defaultProjects
+}
+
+export const fetchAdminSettings = fetchPublicSettings
 
 export async function saveAdminSettings(settingsData, token) {
   console.log('%c[CL-Sync] 💾 Sauvegarde des paramètres en cours...', 'color: #3b82f6; font-weight: bold;', settingsData)

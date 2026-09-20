@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import FadeIn from '../components/FadeIn'
 import defaultSettings from '../../data/settings.json'
+import { fetchPublicSettings } from '../lib/dataSync'
 import './Contact.css'
 
 export default function Contact() {
@@ -18,11 +19,7 @@ export default function Contact() {
     }
     window.addEventListener('cl_settings_updated', handleUpdate)
 
-    fetch('/api/settings')
-      .then(r => {
-        if (!r.ok) throw new Error('Failed to fetch settings')
-        return r.json()
-      })
+    fetchPublicSettings()
       .then(d => {
         if (d && typeof d === 'object' && !d.error) setSettings(prev => ({ ...prev, ...d }))
       })

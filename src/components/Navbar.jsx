@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import defaultSettings from '../../data/settings.json'
+import { fetchPublicSettings } from '../lib/dataSync'
 import './Navbar.css'
 
 const links = [
@@ -27,11 +28,7 @@ export default function Navbar() {
     }
     window.addEventListener('cl_settings_updated', handleUpdate)
 
-    fetch('/api/settings')
-      .then(r => {
-        if (!r.ok) throw new Error('Failed to fetch settings')
-        return r.json()
-      })
+    fetchPublicSettings()
       .then(d => {
         if (d && d.branding) setBranding(d.branding)
       })
