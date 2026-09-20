@@ -134,18 +134,24 @@ export async function getSettings() {
       const data = await withTimeout(store.get('settings', { type: 'json' }), 2500)
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         memorySettings = data
+        console.log('[Storage] 📖 Paramètres chargés depuis Netlify Blobs')
         return data
       }
       const initial = memorySettings || readJSONFile(settingsFile, {})
       await withTimeout(store.setJSON('settings', initial), 2500).catch(() => {})
+      console.log('[Storage] 📖 Paramètres initialisés dans Netlify Blobs')
       return initial
     } catch (err) {
       console.warn('[Storage] Blobs get settings fallback:', err.message)
     }
   }
 
-  if (memorySettings) return memorySettings
+  if (memorySettings) {
+    console.log('[Storage] 📖 Paramètres chargés depuis la mémoire')
+    return memorySettings
+  }
   memorySettings = readJSONFile(settingsFile, {})
+  console.log('[Storage] 📖 Paramètres chargés depuis le fichier local settings.json')
   return memorySettings
 }
 
@@ -160,6 +166,7 @@ export async function saveSettings(settings) {
       await withTimeout(store.setJSON('settings', settings), 3000)
       persisted = true
       storageType = 'blobs'
+      console.log('[Storage] 💾 Paramètres persistés dans Netlify Blobs avec succès')
     } catch (err) {
       console.warn('[Storage] Blobs save settings fallback:', err.message)
     }
@@ -170,9 +177,11 @@ export async function saveSettings(settings) {
     if (written) {
       persisted = true
       if (storageType === 'memory') storageType = 'filesystem'
+      console.log('[Storage] 💾 Paramètres sauvegardés sur le disque local (data/settings.json)')
     }
   } catch {}
 
+  console.log(`[Storage] ✅ Résultat sauvegarde paramètres -> mode: ${storageType}, persistance: ${persisted}`)
   return { persisted, storage: storageType }
 }
 

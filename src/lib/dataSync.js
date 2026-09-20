@@ -79,6 +79,7 @@ export async function fetchAdminProjects(token) {
       if (Array.isArray(data) && data.length > 0) {
         safeSetLocalStorage('cl_projects_admin', data)
         safeSetLocalStorage('cl_projects', data)
+        console.log(`%c[CL-Sync] 📁 ${data.length} projet(s) admin chargés depuis l'API`, 'color: #10b981; font-weight: bold;')
         return data
       }
     } else if (res.status === 401 || res.status === 403) {
@@ -87,17 +88,25 @@ export async function fetchAdminProjects(token) {
       } catch {}
     }
   } catch (err) {
-    console.warn('[Sync] Backend API offline, using local storage cache')
+    console.warn('[CL-Sync] ⚠️ Backend projets inaccessible, utilisation du cache local')
   }
 
   // Check admin cache first, then public cache, then defaults
   const savedAdmin = localStorage.getItem('cl_projects_admin')
   if (savedAdmin) {
-    try { return JSON.parse(savedAdmin) } catch {}
+    try {
+      const list = JSON.parse(savedAdmin)
+      console.log(`%c[CL-Sync] 📁 ${list.length} projet(s) chargés depuis cache admin`, 'color: #f59e0b;')
+      return list
+    } catch {}
   }
   const saved = localStorage.getItem('cl_projects')
   if (saved) {
-    try { return JSON.parse(saved) } catch {}
+    try {
+      const list = JSON.parse(saved)
+      console.log(`%c[CL-Sync] 📁 ${list.length} projet(s) chargés depuis cache public`, 'color: #f59e0b;')
+      return list
+    } catch {}
   }
   return defaultProjects
 }
@@ -106,6 +115,8 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
   let savedServer = false
   let isAuthError = false
   let result = null
+
+  console.log(`%c[CL-Sync] 💾 ${isEdit ? 'Modification' : 'Création'} du projet "${projectData.title || ''}"...`, 'color: #3b82f6; font-weight: bold;')
 
   // Attempt server save (with one retry on network failure)
   for (let attempt = 0; attempt < 2 && !savedServer; attempt++) {
@@ -123,18 +134,19 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
       if (res.ok) {
         result = await res.json()
         savedServer = true
+        console.log('%c[CL-Sync] ✅ Projet persisté avec succès sur le serveur !', 'color: #10b981; font-weight: bold;')
       } else if (res.status === 401 || res.status === 403) {
         isAuthError = true
-        console.warn('[Sync] Token invalid or expired during project save')
+        console.warn('[CL-Sync] ❌ Token invalide lors de la sauvegarde du projet')
         try {
           window.dispatchEvent(new CustomEvent('admin_auth_failed'))
         } catch {}
         break
       } else {
-        console.warn(`[Sync] Server returned ${res.status} on project save (attempt ${attempt + 1})`)
+        console.warn(`[CL-Sync] ⚠️ Réponse serveur ${res.status} sur projet (tentative ${attempt + 1})`)
       }
     } catch (err) {
-      console.warn(`[Sync] Backend offline (attempt ${attempt + 1}):`, err.message)
+      console.warn(`[CL-Sync] ⚠️ Échec sauvegarde projet (tentative ${attempt + 1}):`, err.message)
       if (attempt === 0) {
         // Brief wait before retry
         await new Promise(r => setTimeout(r, 1000))
@@ -172,12 +184,15 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
     safeSetLocalStorage('cl_projects', updatedList)
   }
 
+  console.log('%c[CL-Sync] 📦 Cache local projets mis à jour', 'color: #6366f1;', { total: updatedList.length, savedServer })
   return { success: true, serverSuccess: savedServer, isAuthError, data: result }
 }
 
 export async function deleteAdminProject(id, token) {
   let serverSuccess = false
   let isAuthError = false
+
+  console.log(`%c[CL-Sync] 🗑️ Suppression du projet id=${id}...`, 'color: #ef4444; font-weight: bold;')
 
   for (let attempt = 0; attempt < 2 && !serverSuccess; attempt++) {
     try {
@@ -187,6 +202,7 @@ export async function deleteAdminProject(id, token) {
       })
       if (res.ok) {
         serverSuccess = true
+        console.log('%c[CL-Sync] ✅ Projet supprimé du serveur avec succès !', 'color: #10b981;')
       } else if (res.status === 401 || res.status === 403) {
         isAuthError = true
         try {
@@ -194,10 +210,10 @@ export async function deleteAdminProject(id, token) {
         } catch {}
         break
       } else {
-        console.warn(`[Sync] Server returned ${res.status} on project delete (attempt ${attempt + 1})`)
+        console.warn(`[CL-Sync] ⚠️ Réponse serveur ${res.status} sur suppression (tentative ${attempt + 1})`)
       }
     } catch (err) {
-      console.warn(`[Sync] Backend offline (attempt ${attempt + 1}):`, err.message)
+      console.warn(`[CL-Sync] ⚠️ Échec suppression serveur (tentative ${attempt + 1}):`, err.message)
       if (attempt === 0) {
         await new Promise(r => setTimeout(r, 1000))
       }
@@ -211,6 +227,7 @@ export async function deleteAdminProject(id, token) {
     safeSetLocalStorage('cl_projects', filtered)
   }
 
+  console.log('%c[CL-Sync] 📦 Cache local après suppression mis à jour', 'color: #6366f1;', { remaining: filtered.length })
   return { success: true, serverSuccess, isAuthError }
 }
 
@@ -236,17 +253,21 @@ export async function fetchAdminSettings(token) {
           socialLinks: { ...(defaultSettings.socialLinks || {}), ...(cached?.socialLinks || {}), ...(data.socialLinks || {}) },
         }
         safeSetLocalStorage('cl_settings', merged)
+        console.log('%c[CL-Sync] ⚙️ Paramètres synchronisés depuis l\'API', 'color: #10b981; font-weight: bold;', merged)
         return merged
       }
     }
   } catch (err) {
-    console.warn('[Sync] Backend offline, loading settings from browser cache')
+    console.warn('[CL-Sync] ⚠️ Backend inaccessible, paramètres chargés depuis le cache local')
   }
 
+  console.log('%c[CL-Sync] ⚙️ Paramètres chargés depuis le cache navigateur', 'color: #f59e0b;', cached || defaultSettings)
   return cached || defaultSettings
 }
 
 export async function saveAdminSettings(settingsData, token) {
+  console.log('%c[CL-Sync] 💾 Sauvegarde des paramètres en cours...', 'color: #3b82f6; font-weight: bold;', settingsData)
+  
   // Always get existing settings to perform a safe deep merge
   const current = await fetchAdminSettings(token)
   const merged = {
@@ -282,18 +303,19 @@ export async function saveAdminSettings(settingsData, token) {
       })
       if (res.ok) {
         serverSuccess = true
+        console.log('%c[CL-Sync] ✅ Sauvegarde SERVEUR réussie ! (HTTP ' + res.status + ')', 'color: #10b981; font-weight: bold;')
       } else if (res.status === 401 || res.status === 403) {
         isAuthError = true
-        console.warn('[Sync] Token invalid or expired during save')
+        console.warn('[CL-Sync] ❌ Session expirée ou jeton invalide')
         try {
           window.dispatchEvent(new CustomEvent('admin_auth_failed'))
         } catch {}
         break
       } else {
-        console.warn(`[Sync] Server returned ${res.status} on settings save (attempt ${attempt + 1})`)
+        console.warn(`[CL-Sync] ⚠️ Réponse serveur ${res.status} (tentative ${attempt + 1})`)
       }
     } catch (err) {
-      console.warn(`[Sync] Backend offline (attempt ${attempt + 1}):`, err.message)
+      console.warn(`[CL-Sync] ⚠️ Connexion impossible (tentative ${attempt + 1}):`, err.message)
       if (attempt === 0) {
         await new Promise(r => setTimeout(r, 1000))
       }
@@ -302,10 +324,12 @@ export async function saveAdminSettings(settingsData, token) {
 
   // Persist to local browser storage
   safeSetLocalStorage('cl_settings', merged)
+  console.log('%c[CL-Sync] 📦 Cache navigateur (localStorage) mis à jour', 'color: #6366f1;')
 
   // Broadcast settings change to all active components
   try {
     window.dispatchEvent(new CustomEvent('cl_settings_updated', { detail: merged }))
+    console.log('%c[CL-Sync] 📢 Événement "cl_settings_updated" diffusé aux composants (Navbar, Hero, Footer, Contact)', 'color: #8b5cf6;')
   } catch {}
 
   return { success: true, serverSuccess, isAuthError, data: merged }

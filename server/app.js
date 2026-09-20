@@ -38,6 +38,16 @@ app.use(express.json({ limit: '6mb' }))
 app.use(express.urlencoded({ extended: true, limit: '6mb' }))
 app.use('/uploads', express.static(path.join(publicDir, 'uploads')))
 
+// Global request logger
+app.use((req, res, next) => {
+  const start = Date.now()
+  res.on('finish', () => {
+    const duration = Date.now() - start
+    console.log(`[API ${req.method}] ${req.originalUrl || req.url} -> ${res.statusCode} (${duration}ms)`)
+  })
+  next()
+})
+
 function formatPhoto(photo) {
   if (photo.isStatic) return { ...photo, url: `/images/${photo.filename}` }
   return { ...photo, url: photo.url || `/api/photos/${photo.filename}` }
@@ -136,18 +146,21 @@ router.post('/admin/login', (req, res) => {
     const { password } = req.body || {}
     const token = login(password)
     if (token) {
+      console.log('[API Auth] 🔑 Connexion admin RÉUSSIE')
       res.json({ token })
     } else {
+      console.warn('[API Auth] ❌ Échec de connexion admin (mot de passe incorrect)')
       res.status(401).json({ error: 'Mot de passe incorrect' })
     }
   } catch (err) {
-    console.error('Login error:', err)
+    console.error('[API Auth] Erreur serveur:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
 
 // Verify admin token
 router.get('/admin/verify', authMiddleware, (req, res) => {
+  console.log('[API Auth] 🛡️ Token admin vérifié avec succès')
   res.json({ valid: true, user: req.user })
 })
 
@@ -161,9 +174,10 @@ router.get('/admin/projects', authMiddleware, async (req, res) => {
         photos: (p.photos || []).map(formatPhoto),
       }))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    console.log(`[API Projects] 📋 ${mapped.length} projets admin chargés`)
     res.json(mapped)
   } catch (err) {
-    console.error('Admin projects error:', err)
+    console.error('[API Projects] Erreur chargement admin:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
@@ -187,9 +201,10 @@ router.post('/admin/projects', authMiddleware, async (req, res) => {
     }
     projects.push(newProject)
     const saveResult = await saveProjects(projects)
+    console.log(`[API Projects] ➕ Projet créé: "${newProject.title}" (id: ${newProject.id}, mode: ${saveResult.storage})`)
     res.status(201).json({ ...newProject, _persisted: saveResult.persisted })
   } catch (err) {
-    console.error('Create project error:', err)
+    console.error('[API Projects] Create error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
@@ -209,9 +224,10 @@ router.put('/admin/projects/:id', authMiddleware, async (req, res) => {
     }
     projects[idx] = updated
     const saveResult = await saveProjects(projects)
+    console.log(`[API Projects] ✏️ Projet mis à jour: "${updated.title}" (id: ${updated.id}, mode: ${saveResult.storage})`)
     res.json({ ...updated, _persisted: saveResult.persisted })
   } catch (err) {
-    console.error('Update project error:', err)
+    console.error('[API Projects] Update error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
@@ -231,9 +247,10 @@ router.delete('/admin/projects/:id', authMiddleware, async (req, res) => {
 
     const filtered = projects.filter(p => p.id !== req.params.id)
     const saveResult = await saveProjects(filtered)
+    console.log(`[API Projects] 🗑️ Projet supprimé: "${project.title}" (id: ${req.params.id})`)
     res.json({ success: true, _persisted: saveResult.persisted })
   } catch (err) {
-    console.error('Delete project error:', err)
+    console.error('[API Projects] Delete error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
@@ -253,9 +270,10 @@ router.post('/admin/upload', authMiddleware, upload.array('photos', 20), async (
         isStatic: false,
       })
     }
+    console.log(`[API Upload] 📷 ${results.length} photo(s) téléversée(s) avec succès`)
     res.json(results)
   } catch (err) {
-    console.error('Upload error:', err)
+    console.error('[API Upload] Upload error:', err)
     res.status(500).json({ error: 'Erreur upload' })
   }
 })
@@ -264,9 +282,10 @@ router.post('/admin/upload', authMiddleware, upload.array('photos', 20), async (
 router.delete('/admin/upload/:filename', authMiddleware, async (req, res) => {
   try {
     await deletePhoto(req.params.filename)
+    console.log(`[API Upload] 🗑️ Photo supprimée: ${req.params.filename}`)
     res.json({ success: true })
   } catch (err) {
-    console.error('Delete photo error:', err)
+    console.error('[API Upload] Delete photo error:', err)
     res.status(500).json({ error: 'Erreur suppression' })
   }
 })
@@ -283,9 +302,10 @@ router.put('/admin/settings', authMiddleware, async (req, res) => {
       socialLinks: { ...(current.socialLinks || {}), ...(req.body.socialLinks || {}) },
     }
     const saveResult = await saveSettings(updated)
+    console.log(`[API Settings] ⚙️ Paramètres enregistrés avec succès ! (stockage: ${saveResult.storage}, persisté: ${saveResult.persisted})`)
     res.json({ ...updated, _persisted: saveResult.persisted })
   } catch (err) {
-    console.error('Settings error:', err)
+    console.error('[API Settings] Settings error:', err)
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
