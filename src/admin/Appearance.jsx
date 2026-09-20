@@ -137,10 +137,12 @@ export default function Appearance({ token }) {
     try {
       const result = await saveAdminSettings(form, token)
       if (result.success) {
-        if (result.isAuthError) {
-          showToast('Modifications enregistrées localement (session expirée)')
-        } else {
+        if (result.serverSuccess) {
           showToast('Apparence mise à jour avec succès !')
+        } else if (result.isAuthError) {
+          showToast('⚠ Session expirée — modifications enregistrées localement uniquement')
+        } else {
+          showToast('⚠ Serveur injoignable — modifications enregistrées localement uniquement')
         }
       } else {
         showToast('Erreur lors de la sauvegarde')

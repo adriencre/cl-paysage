@@ -58,7 +58,13 @@ export default function Settings({ token }) {
       const result = await saveAdminSettings(form, token)
       if (result.success) {
         setSaved(true)
-        showToast(result.isAuthError ? 'Paramètres sauvegardés dans votre navigateur' : 'Paramètres enregistrés avec succès !')
+        if (result.serverSuccess) {
+          showToast('Paramètres enregistrés avec succès !')
+        } else if (result.isAuthError) {
+          showToast('⚠ Session expirée — paramètres sauvegardés dans votre navigateur uniquement')
+        } else {
+          showToast('⚠ Serveur injoignable — paramètres sauvegardés dans votre navigateur uniquement')
+        }
         setTimeout(() => setSaved(false), 3000)
       } else {
         showToast('Erreur lors de la sauvegarde')

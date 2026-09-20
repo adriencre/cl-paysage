@@ -72,38 +72,52 @@ export async function fetchAdminProjects(token) {
 
 export async function saveAdminProject(projectData, token, isEdit = false, id = null) {
   let savedServer = false
+  let isAuthError = false
   let result = null
 
-  try {
-    const url = isEdit ? `/api/admin/projects/${id}` : '/api/admin/projects'
-    const method = isEdit ? 'PUT' : 'POST'
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(projectData),
-    })
-    if (res.ok) {
-      result = await res.json()
-      savedServer = true
+  // Attempt server save (with one retry on network failure)
+  for (let attempt = 0; attempt < 2 && !savedServer; attempt++) {
+    try {
+      const url = isEdit ? `/api/admin/projects/${id}` : '/api/admin/projects'
+      const method = isEdit ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(projectData),
+      })
+      if (res.ok) {
+        result = await res.json()
+        savedServer = true
+      } else if (res.status === 401) {
+        isAuthError = true
+        console.warn('[Sync] Token invalid or expired during project save')
+        break
+      } else {
+        console.warn(`[Sync] Server returned ${res.status} on project save (attempt ${attempt + 1})`)
+      }
+    } catch (err) {
+      console.warn(`[Sync] Backend offline (attempt ${attempt + 1}):`, err.message)
+      if (attempt === 0) {
+        // Brief wait before retry
+        await new Promise(r => setTimeout(r, 1000))
+      }
     }
-  } catch (err) {
-    console.warn('[Sync] Backend offline, saving to browser storage')
   }
 
-  // Always update local cache
+  // Always update local cache so the UI stays responsive
   const current = await fetchAdminProjects(token)
   let updatedList = [...current]
   if (isEdit) {
     const idx = updatedList.findIndex(p => p.id === id)
     if (idx !== -1) {
       updatedList[idx] = { ...updatedList[idx], ...projectData }
-      result = updatedList[idx]
+      result = result || updatedList[idx]
     } else {
       updatedList.unshift({ ...projectData, id })
-      result = { ...projectData, id }
+      result = result || { ...projectData, id }
     }
   } else {
     const newProj = result || {
@@ -116,23 +130,35 @@ export async function saveAdminProject(projectData, token, isEdit = false, id = 
   }
 
   safeSetLocalStorage('cl_projects', updatedList)
-  return result
+  return { success: true, serverSuccess: savedServer, isAuthError, data: result }
 }
 
 export async function deleteAdminProject(id, token) {
-  try {
-    await fetch(`/api/admin/projects/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-  } catch (err) {
-    console.warn('[Sync] Backend offline, deleting from browser storage')
+  let serverSuccess = false
+
+  for (let attempt = 0; attempt < 2 && !serverSuccess; attempt++) {
+    try {
+      const res = await fetch(`/api/admin/projects/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        serverSuccess = true
+      } else {
+        console.warn(`[Sync] Server returned ${res.status} on project delete (attempt ${attempt + 1})`)
+      }
+    } catch (err) {
+      console.warn(`[Sync] Backend offline (attempt ${attempt + 1}):`, err.message)
+      if (attempt === 0) {
+        await new Promise(r => setTimeout(r, 1000))
+      }
+    }
   }
 
   const current = await fetchAdminProjects(token)
   const filtered = current.filter(p => p.id !== id)
   safeSetLocalStorage('cl_projects', filtered)
-  return true
+  return { success: true, serverSuccess }
 }
 
 // --- Settings ---
@@ -190,23 +216,32 @@ export async function saveAdminSettings(settingsData, token) {
   let serverSuccess = false
   let isAuthError = false
 
-  try {
-    const res = await fetch('/api/admin/settings', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(merged),
-    })
-    if (res.ok) {
-      serverSuccess = true
-    } else if (res.status === 401) {
-      isAuthError = true
-      console.warn('[Sync] Token invalid or expired during save')
+  // Attempt server save (with one retry on network failure)
+  for (let attempt = 0; attempt < 2 && !serverSuccess; attempt++) {
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(merged),
+      })
+      if (res.ok) {
+        serverSuccess = true
+      } else if (res.status === 401) {
+        isAuthError = true
+        console.warn('[Sync] Token invalid or expired during save')
+        break
+      } else {
+        console.warn(`[Sync] Server returned ${res.status} on settings save (attempt ${attempt + 1})`)
+      }
+    } catch (err) {
+      console.warn(`[Sync] Backend offline (attempt ${attempt + 1}):`, err.message)
+      if (attempt === 0) {
+        await new Promise(r => setTimeout(r, 1000))
+      }
     }
-  } catch (err) {
-    console.warn('[Sync] Backend offline, saving settings to local storage')
   }
 
   // Always persist to local browser storage so the site updates immediately

@@ -184,9 +184,15 @@ export default function ProjectForm({ token, isEdit = false }) {
     setSaving(true)
 
     try {
-      const saved = await saveAdminProject(form, token, isEdit, id)
-      if (saved) {
-        showToast(isEdit ? 'Projet modifié avec succès !' : 'Projet créé avec succès !')
+      const result = await saveAdminProject(form, token, isEdit, id)
+      if (result.success) {
+        if (result.serverSuccess) {
+          showToast(isEdit ? 'Projet modifié avec succès !' : 'Projet créé avec succès !')
+        } else if (result.isAuthError) {
+          showToast('⚠ Session expirée — modifications enregistrées localement uniquement')
+        } else {
+          showToast('⚠ Serveur injoignable — modifications enregistrées localement uniquement')
+        }
         setTimeout(() => navigate('/admin'), 600)
       } else {
         showToast('Erreur lors de la sauvegarde du projet')
