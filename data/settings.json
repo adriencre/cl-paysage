@@ -2,16 +2,16 @@
   "branding": {
     "brandName": "CL",
     "brandAccent": "Paysage",
-    "brandSub": "Paysagiste & Jardinier · Villeneuve d'Ascq",
+    "brandSub": "Paysagiste Concepteur",
     "logoUrl": "/images/logo.png"
   },
   "hero": {
     "bgImage": "/images/hero.jpg",
-    "tagline": "Artisan paysagiste · Villeneuve d'Ascq & Métropole Lilloise",
-    "titleLine1": "Paysagiste & Jardinage",
-    "titleLine2": "à Villeneuve d'Ascq",
-    "description": "Conception sur-mesure, aménagement paysager et entretien de jardin (tonte, taille de haies, massifs, terrasses) à Villeneuve d'Ascq, Hem, Croix, Marcq-en-Barœul et aux alentours.",
-    "buttonText": "Découvrir nos réalisations"
+    "tagline": "Atelier de paysage · Conception & Réalisation",
+    "titleLine1": "L'art de façonner",
+    "titleLine2": "vos espaces extérieurs",
+    "description": "Conception sur-mesure, aménagement végétal et harmonie des matières. Nous donnons vie à des jardins d'exception, pensés pour durer et évoluer au fil des saisons.",
+    "buttonText": "Regarder les réalisations"
   },
   "phone": "06 00 00 00 00",
   "email": "contact@clpaysage.fr",
@@ -23,5 +23,5 @@
     "pinterest": "",
     "tiktok": ""
   },
-  "siteDescription": "CL Paysage, artisan paysagiste et jardinier à Villeneuve d'Ascq (59650) et métropole lilloise. Aménagement paysager, taille de haies, tonte et entretien d'espaces verts."
+  "siteDescription": "CL Paysage, paysagiste et entretien de jardins à Villeneuve d'Ascq. Conception et aménagement d'espaces extérieurs uniques."
 }
