@@ -7,6 +7,13 @@ import FadeIn from '../components/FadeIn'
 import { usePageSeo } from '../hooks/usePageSeo'
 import './Home.css'
 
+// Helper to ensure every photo object has a usable URL
+// Preserves existing URLs from Supabase CDN, only constructs local paths as fallback
+function enrichPhoto(ph) {
+  if (ph.url) return ph
+  return { ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }
+}
+
 export default function Home() {
   usePageSeo({
     title: "CL Paysage — Paysagiste & Jardinier à Villeneuve d'Ascq (59) | Entretien & Aménagement",
@@ -17,7 +24,7 @@ export default function Home() {
   const [projects, setProjects] = useState(() => {
     return defaultProjects.map(p => ({
       ...p,
-      photos: (p.photos || []).map(ph => ({ ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }))
+      photos: (p.photos || []).map(enrichPhoto)
     })).slice(0, 3)
   })
 
@@ -42,7 +49,10 @@ export default function Home() {
     // 1. Projets publics (depuis Supabase Cloud en priorité)
     fetchPublicProjects().then(data => {
       if (Array.isArray(data) && data.length > 0) {
-        setProjects(data.slice(0, 3))
+        setProjects(data.map(p => ({
+          ...p,
+          photos: (p.photos || []).map(enrichPhoto)
+        })).slice(0, 3))
       }
     })
 

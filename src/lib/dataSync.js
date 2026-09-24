@@ -37,7 +37,7 @@ export async function fetchAdminProjects(token) {
     const sbData = await fetchProjectsFromSupabase()
     if (sbData && sbData.length > 0) {
       console.log(`%c[CL-Sync] 📁 ${sbData.length} projet(s) chargés depuis Supabase (Cloud)`, 'color: #3ecf8e; font-weight: bold;')
-      return sbData
+      return sbData.map(enrichProjectPhotos)
     }
   }
 
@@ -50,7 +50,7 @@ export async function fetchAdminProjects(token) {
       const data = await res.json()
       if (Array.isArray(data)) {
         console.log(`%c[CL-Sync] 📁 ${data.length} projet(s) admin chargés depuis l'API`, 'color: #10b981; font-weight: bold;')
-        return data
+        return data.map(enrichProjectPhotos)
       }
     } else if (res.status === 401 || res.status === 403) {
       try {
@@ -61,7 +61,7 @@ export async function fetchAdminProjects(token) {
     console.warn('[CL-Sync] ⚠️ Serveur inaccessible pour les projets, utilisation des projets par défaut')
   }
 
-  return defaultProjects
+  return defaultProjects.map(enrichProjectPhotos)
 }
 
 export async function saveAdminProject(projectData, token, isEdit = false, id = null) {
@@ -180,11 +180,25 @@ export async function fetchPublicSettings() {
   return defaultSettings
 }
 
+// Ensure every photo object has a usable URL
+// Preserves existing URLs from Supabase CDN, only constructs local paths as fallback
+function enrichPhoto(ph) {
+  if (ph.url) return ph
+  return { ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }
+}
+
+function enrichProjectPhotos(project) {
+  return {
+    ...project,
+    photos: (project.photos || []).map(enrichPhoto)
+  }
+}
+
 export async function fetchPublicProjects() {
   if (isSupabaseConfigured) {
     const sbData = await fetchProjectsFromSupabase()
     if (sbData && sbData.length > 0) {
-      return sbData
+      return sbData.map(enrichProjectPhotos)
     }
   }
 
@@ -193,12 +207,12 @@ export async function fetchPublicProjects() {
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
-        return data
+        return data.map(enrichProjectPhotos)
       }
     }
   } catch {}
 
-  return defaultProjects
+  return defaultProjects.map(enrichProjectPhotos)
 }
 
 export const fetchAdminSettings = fetchPublicSettings

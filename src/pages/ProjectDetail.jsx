@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import defaultProjects from '../../data/projects.json'
+import { fetchPublicProjects } from '../lib/dataSync'
 import FadeIn from '../components/FadeIn'
 import Lightbox from '../components/Lightbox'
 import { usePageSeo } from '../hooks/usePageSeo'
@@ -12,6 +13,12 @@ const CATEGORY_LABELS = {
   terrasse: 'Terrasse & Allées',
   entretien: 'Entretien',
   autre: 'Autre',
+}
+
+// Ensure every photo has a usable URL (preserve Supabase CDN URLs, fallback to local paths)
+function enrichPhoto(ph) {
+  if (ph.url) return ph
+  return { ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }
 }
 
 function formatDate(dateStr) {
@@ -71,10 +78,7 @@ export default function ProjectDetail() {
       if (!p) return null
       const enriched = {
         ...p,
-        photos: (p.photos || []).map(ph => ({
-          ...ph,
-          url: ph.url || (ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}`)
-        })),
+        photos: (p.photos || []).map(enrichPhoto),
       }
       const published = list.filter(item => item.published !== false)
       const idx = published.findIndex(item => item.id === id)
@@ -83,14 +87,31 @@ export default function ProjectDetail() {
       return { project: enriched, prev, next }
     }
 
-    // Fetch directly from server with defaultProjects fallback
-    fetch(`/api/projects/${id}`)
-      .then(r => {
-        if (!r.ok) throw new Error('Not found')
-        return r.json()
-      })
-      .then(d => {
-        if (d && d.project) setData(d)
+    // Fetch from Supabase (via dataSync) first, then fallback to server API, then default projects
+    fetchPublicProjects()
+      .then(projects => {
+        if (Array.isArray(projects) && projects.length > 0) {
+          const found = findInList(projects)
+          if (found) {
+            setData(found)
+            return
+          }
+        }
+        // Fallback to server API for individual project
+        return fetch(`/api/projects/${id}`)
+          .then(r => {
+            if (!r.ok) throw new Error('Not found')
+            return r.json()
+          })
+          .then(d => {
+            if (d && d.project) {
+              // Enrich photos from server API response too
+              d.project.photos = (d.project.photos || []).map(enrichPhoto)
+              setData(d)
+            } else {
+              throw new Error('No project data')
+            }
+          })
       })
       .catch(() => {
         const defFound = findInList(defaultProjects)

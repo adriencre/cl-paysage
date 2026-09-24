@@ -6,6 +6,12 @@ import FadeIn from '../components/FadeIn'
 import { usePageSeo } from '../hooks/usePageSeo'
 import './Realisations.css'
 
+// Ensure every photo has a usable URL (preserve Supabase CDN URLs, fallback to local paths)
+function enrichPhoto(ph) {
+  if (ph.url) return ph
+  return { ...ph, url: ph.isStatic ? `/images/${ph.filename}` : `/uploads/${ph.filename}` }
+}
+
 const CATEGORIES = [
   { value: 'all', label: 'Tout' },
   { value: 'amenagement', label: 'Aménagement' },
@@ -45,12 +51,21 @@ export default function Realisations() {
     fetchPublicProjects()
       .then(data => {
         if (Array.isArray(data)) {
-          setProjects(data)
+          setProjects(data.map(p => ({
+            ...p,
+            photos: (p.photos || []).map(enrichPhoto)
+          })))
         } else {
-          setProjects(defaultProjects)
+          setProjects(defaultProjects.map(p => ({
+            ...p,
+            photos: (p.photos || []).map(enrichPhoto)
+          })))
         }
       })
-      .catch(() => setProjects(defaultProjects))
+      .catch(() => setProjects(defaultProjects.map(p => ({
+        ...p,
+        photos: (p.photos || []).map(enrichPhoto)
+      }))))
       .finally(() => setLoading(false))
   }, [])
 
