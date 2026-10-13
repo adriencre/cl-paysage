@@ -169,10 +169,6 @@ export function mergeWithDefaultSettings(custom = {}) {
         ...(defContent.services || {}),
         ...(customContent.services || {}),
       },
-      taxCredit: {
-        ...(defContent.taxCredit || {}),
-        ...(customContent.taxCredit || {}),
-      },
       contact: {
         ...(defContent.contact || {}),
         ...(customContent.contact || {}),
@@ -295,10 +291,6 @@ export async function saveAdminSettings(settingsData, token) {
       services: {
         ...(currentContent.services || {}),
         ...(newContent.services || {}),
-      },
-      taxCredit: {
-        ...(currentContent.taxCredit || {}),
-        ...(newContent.taxCredit || {}),
       },
       contact: {
         ...(currentContent.contact || {}),

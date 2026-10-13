@@ -87,7 +87,6 @@ export default function SiteTexts({ token }) {
 
   const home = form.content?.home || defaultSettings.content?.home || {}
   const services = form.content?.services || defaultSettings.content?.services || {}
-  const taxCredit = form.content?.taxCredit || defaultSettings.content?.taxCredit || {}
   const contact = form.content?.contact || defaultSettings.content?.contact || {}
   const realisations = form.content?.realisations || defaultSettings.content?.realisations || {}
   const navbar = form.content?.navbar || defaultSettings.content?.navbar || {}
@@ -127,12 +126,6 @@ export default function SiteTexts({ token }) {
           onClick={() => setActiveTab('services')}
         >
           🌿 Page Services
-        </button>
-        <button
-          className={`site-texts-tab${activeTab === 'taxCredit' ? ' active' : ''}`}
-          onClick={() => setActiveTab('taxCredit')}
-        >
-          ✨ Crédit d'impôt (50%)
         </button>
         <button
           className={`site-texts-tab${activeTab === 'contact' ? ' active' : ''}`}
@@ -514,7 +507,6 @@ export default function SiteTexts({ token }) {
               <div className="text-subcard">
                 <div className="text-subcard-title">
                   <h4>Service 3 : Entretien de jardins</h4>
-                  <span className="tax-credit-highlight-badge">Éligible Crédit d'impôt</span>
                 </div>
                 <div className="text-field-group">
                   <label>Titre</label>
@@ -702,95 +694,6 @@ export default function SiteTexts({ token }) {
           </div>
         )}
 
-        {/* =======================================================
-            TAB 3: CRÉDIT D'IMPÔT
-           ======================================================= */}
-        {activeTab === 'taxCredit' && (
-          <div>
-            <div className="text-section-card">
-              <div className="text-section-header">
-                <div>
-                  <h3>Avantage Fiscal & Crédit d'impôt (50%)</h3>
-                  <p>Mettez en avant le crédit d'impôt pour l'entretien extérieur des particuliers</p>
-                </div>
-              </div>
-
-              {/* Enable toggle */}
-              <div className="text-field-group" style={{ marginBottom: '1.5rem' }}>
-                <div
-                  className="toggle-field"
-                  onClick={() => updateContent('taxCredit', 'enabled', !taxCredit.enabled)}
-                >
-                  <div className={`toggle-switch${taxCredit.enabled ? ' checked' : ''}`}>
-                    <div className="toggle-slider" />
-                  </div>
-                  <div>
-                    <span style={{ fontWeight: 600, color: taxCredit.enabled ? 'var(--c-olive)' : '#71717a' }}>
-                      {taxCredit.enabled ? 'Section crédit d\'impôt activée et visible sur le site' : 'Section crédit d\'impôt désactivée'}
-                    </span>
-                    <p className="field-hint">Affiche un encadré valorisant les 50% de crédit d'impôt sur la page Services.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-grid-2">
-                <div className="text-field-group">
-                  <label>Badge de l'encadré</label>
-                  <input
-                    type="text"
-                    className="text-input"
-                    value={taxCredit.badge || ''}
-                    onChange={(e) => updateContent('taxCredit', 'badge', e.target.value)}
-                    placeholder="Avantage fiscal"
-                  />
-                </div>
-                <div className="text-field-group">
-                  <label>Badge affiché sur la carte « Entretien de jardin »</label>
-                  <input
-                    type="text"
-                    className="text-input"
-                    value={taxCredit.serviceBadge || ''}
-                    onChange={(e) => updateContent('taxCredit', 'serviceBadge', e.target.value)}
-                    placeholder="Éligible crédit d'impôt 50%"
-                  />
-                </div>
-              </div>
-
-              <div className="text-field-group">
-                <label>Grand titre de l'encadré</label>
-                <input
-                  type="text"
-                  className="text-input"
-                  value={taxCredit.title || ''}
-                  onChange={(e) => updateContent('taxCredit', 'title', e.target.value)}
-                  placeholder="Bénéficiez de 50% de crédit d'impôt sur l'entretien"
-                />
-              </div>
-
-              <div className="text-field-group">
-                <label>Texte explicatif détaillé</label>
-                <textarea
-                  className="text-textarea"
-                  rows={3}
-                  value={taxCredit.description || ''}
-                  onChange={(e) => updateContent('taxCredit', 'description', e.target.value)}
-                  placeholder="Pour vos travaux d'entretien courant de jardin (tonte, taille de haies, débroussaillage, désherbage...), profitez d'une réduction ou d'un crédit d'impôt de 50% selon la réglementation en vigueur (services à la personne)."
-                />
-              </div>
-
-              <div className="text-field-group" style={{ maxWidth: '420px' }}>
-                <label>Texte du bouton d'action</label>
-                <input
-                  type="text"
-                  className="text-input"
-                  value={taxCredit.buttonText || ''}
-                  onChange={(e) => updateContent('taxCredit', 'buttonText', e.target.value)}
-                  placeholder="Se renseigner pour un projet"
-                />
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* =======================================================
             TAB 4: PAGE CONTACT
