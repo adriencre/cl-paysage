@@ -94,6 +94,7 @@ export async function fetchSettingsFromSupabase() {
         content: {
           home: { ...(defContent.home || {}), ...(jsonContent.home || {}) },
           services: { ...(defContent.services || {}), ...(jsonContent.services || {}) },
+          taxCredit: { ...(defContent.taxCredit || {}), ...(jsonContent.taxCredit || {}) },
           contact: { ...(defContent.contact || {}), ...(jsonContent.contact || {}) },
           realisations: { ...(defContent.realisations || {}), ...(jsonContent.realisations || {}) },
           navbar: { ...(defContent.navbar || {}), ...(jsonContent.navbar || {}) },

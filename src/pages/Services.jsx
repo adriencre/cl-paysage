@@ -31,6 +31,7 @@ export default function Services() {
   }, [])
 
   const servicesContent = settings.content?.services || defaultSettings.content?.services || {}
+  const taxCredit = settings.content?.taxCredit || defaultSettings.content?.taxCredit || {}
 
   const servicesList = [
     {
@@ -141,6 +142,35 @@ export default function Services() {
           </div>
         </div>
       </section>
+
+      {/* Tax Credit Banner / Card */}
+      {taxCredit.enabled !== false && (
+        <section className="section tax-credit-section" id="tax-credit">
+          <div className="container">
+            <FadeIn>
+              <div className="tax-credit-card">
+                <div className="tax-credit-content">
+                  <div className="tax-credit-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <span>{taxCredit.badge || "Avantage fiscal"}</span>
+                  </div>
+                  <h2>{taxCredit.title || "Bénéficiez de 50% de crédit d'impôt sur l'entretien"}</h2>
+                  <p>
+                    {taxCredit.description || "Pour vos travaux d'entretien courant de jardin (tonte, taille de haies, débroussaillage, désherbage...), profitez d'une réduction ou d'un crédit d'impôt de 50% selon la réglementation en vigueur (services à la personne)."}
+                  </p>
+                </div>
+                <div className="tax-credit-action">
+                  <Link to="/contact" className="btn btn-primary">
+                    {taxCredit.buttonText || "Se renseigner pour un projet"}
+                  </Link>
+                </div>
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+      )}
 
       {/* Process */}
       <section className="section process-section" id="process">
