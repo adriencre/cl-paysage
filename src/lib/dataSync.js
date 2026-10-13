@@ -11,7 +11,7 @@ import {
   saveContactMessageToSupabase,
   updateContactMessageInSupabase,
   deleteContactMessageFromSupabase
-} from './supabase'
+} from './supabase.js'
 
 // Purge any legacy data caches from localStorage to ensure server is single source of truth
 try {
@@ -140,6 +140,59 @@ export async function deleteAdminProject(id, token) {
   return { success: serverSuccess, serverSuccess, isAuthError }
 }
 
+// Deep merge helper ensuring all default text values and content objects are preserved
+export function mergeWithDefaultSettings(custom = {}) {
+  const customContent = custom.content || {}
+  const defContent = defaultSettings.content || {}
+
+  return {
+    ...defaultSettings,
+    ...custom,
+    branding: {
+      ...(defaultSettings.branding || {}),
+      ...(custom.branding || {}),
+    },
+    hero: {
+      ...(defaultSettings.hero || {}),
+      ...(custom.hero || {}),
+    },
+    socialLinks: {
+      ...(defaultSettings.socialLinks || {}),
+      ...(custom.socialLinks || {}),
+    },
+    content: {
+      home: {
+        ...(defContent.home || {}),
+        ...(customContent.home || {}),
+      },
+      services: {
+        ...(defContent.services || {}),
+        ...(customContent.services || {}),
+      },
+      taxCredit: {
+        ...(defContent.taxCredit || {}),
+        ...(customContent.taxCredit || {}),
+      },
+      contact: {
+        ...(defContent.contact || {}),
+        ...(customContent.contact || {}),
+      },
+      realisations: {
+        ...(defContent.realisations || {}),
+        ...(customContent.realisations || {}),
+      },
+      navbar: {
+        ...(defContent.navbar || {}),
+        ...(customContent.navbar || {}),
+      },
+      footer: {
+        ...(defContent.footer || {}),
+        ...(customContent.footer || {}),
+      },
+    },
+  }
+}
+
 // --- Settings ---
 // Public read settings with instant session cache for hero image to prevent any flash
 export async function fetchPublicSettings() {
@@ -147,10 +200,11 @@ export async function fetchPublicSettings() {
   if (isSupabaseConfigured) {
     const sbSettings = await fetchSettingsFromSupabase()
     if (sbSettings) {
-      if (sbSettings.hero?.bgImage) {
-        try { sessionStorage.setItem('cl_hero_bg', sbSettings.hero.bgImage) } catch {}
+      const merged = mergeWithDefaultSettings(sbSettings)
+      if (merged.hero?.bgImage) {
+        try { sessionStorage.setItem('cl_hero_bg', merged.hero.bgImage) } catch {}
       }
-      return sbSettings
+      return merged
     }
   }
 
@@ -160,13 +214,7 @@ export async function fetchPublicSettings() {
     if (res.ok) {
       const data = await res.json()
       if (data && typeof data === 'object' && !data.error) {
-        const merged = {
-          ...defaultSettings,
-          ...data,
-          branding: { ...(defaultSettings.branding || {}), ...(data.branding || {}) },
-          hero: { ...(defaultSettings.hero || {}), ...(data.hero || {}) },
-          socialLinks: { ...(defaultSettings.socialLinks || {}), ...(data.socialLinks || {}) },
-        }
+        const merged = mergeWithDefaultSettings(data)
         if (merged.hero?.bgImage) {
           try { sessionStorage.setItem('cl_hero_bg', merged.hero.bgImage) } catch {}
         }
@@ -221,6 +269,9 @@ export async function saveAdminSettings(settingsData, token) {
   console.log('%c[CL-Sync] 💾 Sauvegarde des paramètres en cours...', 'color: #3b82f6; font-weight: bold;', settingsData)
 
   const current = await fetchAdminSettings(token)
+  const currentContent = current.content || {}
+  const newContent = settingsData.content || {}
+
   const merged = {
     ...current,
     ...settingsData,
@@ -235,6 +286,36 @@ export async function saveAdminSettings(settingsData, token) {
     socialLinks: {
       ...(current.socialLinks || {}),
       ...(settingsData.socialLinks || {}),
+    },
+    content: {
+      home: {
+        ...(currentContent.home || {}),
+        ...(newContent.home || {}),
+      },
+      services: {
+        ...(currentContent.services || {}),
+        ...(newContent.services || {}),
+      },
+      taxCredit: {
+        ...(currentContent.taxCredit || {}),
+        ...(newContent.taxCredit || {}),
+      },
+      contact: {
+        ...(currentContent.contact || {}),
+        ...(newContent.contact || {}),
+      },
+      realisations: {
+        ...(currentContent.realisations || {}),
+        ...(newContent.realisations || {}),
+      },
+      navbar: {
+        ...(currentContent.navbar || {}),
+        ...(newContent.navbar || {}),
+      },
+      footer: {
+        ...(currentContent.footer || {}),
+        ...(newContent.footer || {}),
+      },
     },
   }
 

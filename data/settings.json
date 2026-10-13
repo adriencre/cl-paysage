@@ -23,5 +23,84 @@
     "pinterest": "",
     "tiktok": ""
   },
-  "siteDescription": "CL Paysage, paysagiste et entretien de jardins à Villeneuve d'Ascq. Conception et aménagement d'espaces extérieurs uniques."
+  "siteDescription": "CL Paysage, paysagiste et entretien de jardins à Villeneuve d'Ascq. Conception et aménagement d'espaces extérieurs uniques.",
+  "content": {
+    "home": {
+      "approachLabel": "Notre approche",
+      "approachTitle": "Un savoir-faire à chaque étape",
+      "approachStep1Title": "Conception",
+      "approachStep1Desc": "Étude personnalisée de votre terrain, de vos envies et de votre mode de vie pour imaginer un projet qui vous ressemble.",
+      "approachStep2Title": "Réalisation",
+      "approachStep2Desc": "Mise en œuvre soignée avec des matériaux nobles et des végétaux sélectionnés pour un résultat durable et harmonieux.",
+      "approachStep3Title": "Entretien",
+      "approachStep3Desc": "Suivi régulier et attentif pour que votre extérieur conserve son éclat saison après saison.",
+      "previewLabel": "Réalisations",
+      "previewTitle": "Nos dernières créations",
+      "previewButton": "Voir toutes nos réalisations →",
+      "ctaTitle": "Votre projet commence ici",
+      "ctaButton": "Nous contacter"
+    },
+    "services": {
+      "headerLabel": "Expertise",
+      "headerTitle": "Nos services",
+      "headerSubtitle": "De la conception à l'entretien, nous vous accompagnons à chaque étape de votre projet paysager.",
+      "service1Title": "Conception paysagère",
+      "service1Desc": "Plans sur mesure adaptés à votre terrain, votre environnement et vos envies. Nous imaginons des espaces qui s'intègrent naturellement à leur contexte.",
+      "service2Title": "Aménagement extérieur",
+      "service2Desc": "Terrasses, allées, murets, clôtures — nous construisons avec des matériaux nobles pour des espaces durables et esthétiques.",
+      "service3Title": "Entretien de jardins",
+      "service3Desc": "Taille, tonte, élagage, traitement raisonné — un suivi régulier pour que votre extérieur reste impeccable tout au long de l'année.",
+      "service4Title": "Terrasses & allées",
+      "service4Desc": "Pierre naturelle, bois, béton décoratif — des revêtements choisis avec soin pour prolonger votre intérieur vers l'extérieur.",
+      "processLabel": "Notre démarche",
+      "processTitle": "Les étapes clés",
+      "step1Num": "01",
+      "step1Title": "Rencontre",
+      "step1Desc": "Visite de votre terrain et échange sur vos envies",
+      "step2Num": "02",
+      "step2Title": "Étude",
+      "step2Desc": "Conception du plan et choix des matériaux et végétaux",
+      "step3Num": "03",
+      "step3Title": "Réalisation",
+      "step3Desc": "Mise en œuvre par notre équipe avec suivi régulier",
+      "step4Num": "04",
+      "step4Title": "Suivi",
+      "step4Desc": "Entretien et accompagnement sur le long terme",
+      "ctaTitle": "Prêt à transformer votre extérieur ?",
+      "ctaButton": "Demander un devis"
+    },
+    "taxCredit": {
+      "enabled": true,
+      "badge": "Avantage fiscal",
+      "title": "Bénéficiez de 50% de crédit d'impôt sur l'entretien",
+      "description": "Pour vos travaux d'entretien courant de jardin (tonte, taille de haies, débroussaillage, désherbage...), profitez d'une réduction ou d'un crédit d'impôt de 50% selon la réglementation en vigueur (services à la personne).",
+      "serviceBadge": "Éligible crédit d'impôt 50%",
+      "buttonText": "Se renseigner pour un projet",
+      "showInServices": true
+    },
+    "contact": {
+      "headerLabel": "Contact",
+      "headerTitle": "Parlons de votre projet",
+      "headerSubtitle": "Une idée, une envie, une question ? Contactez-nous pour échanger sur votre futur extérieur.",
+      "introText": "Nous intervenons dans toute la région. N'hésitez pas à nous contacter par téléphone ou via le formulaire pour un premier échange gratuit et sans engagement.",
+      "submitButton": "Envoyer le message",
+      "successTitle": "Merci pour votre message !",
+      "successDesc": "Votre demande a bien été transmise à notre équipe. Nous l'étudions avec attention et reviendrons vers vous dans les plus brefs délais.",
+      "successButton": "Envoyer un autre message"
+    },
+    "realisations": {
+      "headerLabel": "Portfolio",
+      "headerTitle": "Nos réalisations",
+      "headerSubtitle": "Chaque espace est une création unique. Découvrez nos réalisations et laissez-vous inspirer pour le vôtre.",
+      "emptyText": "Aucune réalisation dans cette catégorie pour le moment."
+    },
+    "navbar": {
+      "ctaButton": "Demander un devis"
+    },
+    "footer": {
+      "navigationHeading": "Navigation",
+      "contactHeading": "Contact",
+      "creditText": "Site réalisé avec passion"
+    }
+  }
 }

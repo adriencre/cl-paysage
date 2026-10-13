@@ -1,0 +1,360 @@
+/* =======================================================
+   CL Paysage — Admin Textes & Contenus (Light Theme System)
+   Harmonisé avec le site blanc/écru et l'espace admin
+   ======================================================= */
+
+.site-texts-page {
+  max-width: 1050px;
+}
+
+.site-texts-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.site-texts-header h1 {
+  font-family: var(--f-body);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--c-anthracite);
+  margin-bottom: 0.35rem;
+}
+
+.site-texts-header p {
+  color: #71717a;
+  font-size: 0.88rem;
+  max-width: 750px;
+  line-height: 1.5;
+}
+
+/* Save button (CL Paysage Olive Green) */
+.site-texts-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.4rem;
+  background: var(--c-olive);
+  color: white;
+  font-weight: 500;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(74, 93, 58, 0.2);
+  font-family: var(--f-body);
+}
+
+.site-texts-save-btn:hover:not(:disabled) {
+  background: var(--c-olive-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 93, 58, 0.3);
+}
+
+.site-texts-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Tabs navigation */
+.site-texts-tabs {
+  display: flex;
+  gap: 0.4rem;
+  border-bottom: 1px solid #e4e4e7;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.site-texts-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1.15rem;
+  background: transparent;
+  color: #71717a;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  font-family: var(--f-body);
+  border-radius: 4px 4px 0 0;
+}
+
+.site-texts-tab:hover {
+  color: var(--c-anthracite);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.site-texts-tab.active {
+  color: var(--c-olive);
+  border-bottom-color: var(--c-olive);
+  background: white;
+  font-weight: 600;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.02);
+}
+
+/* Form sections & cards */
+.text-section-card {
+  background: white;
+  border: 1px solid #e4e4e7;
+  border-radius: 4px;
+  padding: 1.75rem;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.text-section-header {
+  border-bottom: 1px solid #f4f4f5;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-section-header h3 {
+  font-family: var(--f-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--c-anthracite);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.text-section-header p {
+  color: #71717a;
+  font-size: 0.82rem;
+  margin-top: 0.2rem;
+}
+
+/* Sub-card groups (for individual steps, pillars, services) */
+.text-subcard {
+  padding: 1.15rem;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.text-subcard:last-child {
+  margin-bottom: 0;
+}
+
+.text-subcard-title {
+  color: var(--c-olive);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.text-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.text-field-group {
+  margin-bottom: 1.25rem;
+}
+
+.text-field-group:last-child {
+  margin-bottom: 0;
+}
+
+.text-field-group label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #52525b;
+  margin-bottom: 0.4rem;
+}
+
+.text-field-group .field-hint {
+  font-size: 0.78rem;
+  color: #71717a;
+  margin-top: 0.35rem;
+}
+
+.text-input,
+.text-textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  background: white;
+  border: 1px solid #e4e4e7;
+  border-radius: 2px;
+  color: var(--c-anthracite);
+  font-size: 0.9rem;
+  font-family: var(--f-body);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.text-input:focus,
+.text-textarea:focus {
+  border-color: var(--c-olive);
+  box-shadow: 0 0 0 3px rgba(74, 93, 58, 0.12);
+  background: white;
+}
+
+.text-textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.6;
+}
+
+/* Toggle switch for Credit d'impot */
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.75rem 1rem;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-radius: 4px;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 46px;
+  height: 24px;
+  background: #d4d4d8;
+  border-radius: 999px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-switch.checked {
+  background: var(--c-olive);
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.checked .toggle-slider {
+  transform: translateX(22px);
+}
+
+.tax-credit-highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  background: rgba(74, 93, 58, 0.12);
+  color: var(--c-olive);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(74, 93, 58, 0.25);
+}
+
+/* Floating bottom save bar */
+.site-texts-bottom-bar {
+  position: sticky;
+  bottom: 1.5rem;
+  margin-top: 2rem;
+  padding: 0.85rem 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  z-index: 50;
+}
+
+.bottom-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #52525b;
+  font-size: 0.84rem;
+}
+
+.bottom-bar-info span {
+  color: var(--c-olive);
+  font-weight: 600;
+}
+
+/* Toast */
+.site-texts-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--c-anthracite);
+  color: white;
+  border-left: 4px solid var(--c-olive);
+  padding: 0.85rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.88rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .site-texts-page {
+    padding: 0;
+  }
+
+  .text-grid-2,
+  .text-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .site-texts-bottom-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .bottom-bar-info {
+    justify-content: center;
+  }
+}

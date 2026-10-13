@@ -19,6 +19,7 @@ import ProjectForm from './admin/ProjectForm'
 import Settings from './admin/Settings'
 import Appearance from './admin/Appearance'
 import Messages from './admin/Messages'
+import SiteTexts from './admin/SiteTexts'
 
 function isTokenExpired(token) {
   if (!token) return true
@@ -149,6 +150,9 @@ export default function App() {
           } />
           <Route path="/admin/editer/:id" element={
             <AdminRoute>{({ token }) => <ProjectForm token={token} isEdit />}</AdminRoute>
+          } />
+          <Route path="/admin/textes" element={
+            <AdminRoute>{({ token }) => <SiteTexts token={token} />}</AdminRoute>
           } />
           <Route path="/admin/apparence" element={
             <AdminRoute>{({ token }) => <Appearance token={token} />}</AdminRoute>

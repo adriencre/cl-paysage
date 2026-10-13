@@ -90,6 +90,7 @@ export default function Home() {
   }, [])
 
   const hero = settings.hero || defaultSettings.hero
+  const homeContent = settings.content?.home || defaultSettings.content?.home || {}
 
   return (
     <>
@@ -132,8 +133,8 @@ export default function Home() {
       <section className="section approach" id="approach">
         <div className="container">
           <FadeIn>
-            <span className="section-label">Notre approche</span>
-            <h2 className="section-title">Un savoir-faire à chaque étape</h2>
+            <span className="section-label">{homeContent.approachLabel || "Notre approche"}</span>
+            <h2 className="section-title">{homeContent.approachTitle || "Un savoir-faire à chaque étape"}</h2>
           </FadeIn>
           <div className="approach-grid">
             <FadeIn delay={0}>
@@ -143,10 +144,9 @@ export default function Home() {
                   <path d="M24 14v10l7 7" />
                   <path d="M16 8l2 4M32 8l-2 4" />
                 </svg>
-                <h3>Conception</h3>
+                <h3>{homeContent.approachStep1Title || "Conception"}</h3>
                 <p>
-                  Étude personnalisée de votre terrain, de vos envies
-                  et de votre mode de vie pour imaginer un jardin qui vous ressemble.
+                  {homeContent.approachStep1Desc || "Étude personnalisée de votre terrain, de vos envies et de votre mode de vie pour imaginer un projet qui vous ressemble."}
                 </p>
               </div>
             </FadeIn>
@@ -158,10 +158,9 @@ export default function Home() {
                   <path d="M20 42v-8h8v8" />
                   <circle cx="24" cy="22" r="3" />
                 </svg>
-                <h3>Réalisation</h3>
+                <h3>{homeContent.approachStep2Title || "Réalisation"}</h3>
                 <p>
-                  Mise en œuvre soignée avec des matériaux nobles et des végétaux
-                  sélectionnés pour un résultat durable et harmonieux.
+                  {homeContent.approachStep2Desc || "Mise en œuvre soignée avec des matériaux nobles et des végétaux sélectionnés pour un résultat durable et harmonieux."}
                 </p>
               </div>
             </FadeIn>
@@ -171,10 +170,9 @@ export default function Home() {
                   <path d="M24 6c-6 8-14 13-14 22a14 14 0 0028 0C38 19 30 14 24 6z" />
                   <path d="M20 30c0-4 4-8 4-8s4 4 4 8a4 4 0 01-8 0z" />
                 </svg>
-                <h3>Entretien</h3>
+                <h3>{homeContent.approachStep3Title || "Entretien"}</h3>
                 <p>
-                  Suivi régulier et attentif pour que votre jardin conserve
-                  son éclat saison après saison.
+                  {homeContent.approachStep3Desc || "Suivi régulier et attentif pour que votre extérieur conserve son éclat saison après saison."}
                 </p>
               </div>
             </FadeIn>
@@ -186,8 +184,8 @@ export default function Home() {
       <section className="section" id="preview">
         <div className="container">
           <FadeIn>
-            <span className="section-label">Réalisations</span>
-            <h2 className="section-title">Nos dernières créations</h2>
+            <span className="section-label">{homeContent.previewLabel || "Réalisations"}</span>
+            <h2 className="section-title">{homeContent.previewTitle || "Nos dernières créations"}</h2>
           </FadeIn>
           <FadeIn>
             <div className="preview-grid">
@@ -204,7 +202,7 @@ export default function Home() {
           </FadeIn>
           <FadeIn>
             <Link to="/realisations" className="btn-text">
-              Voir toutes nos réalisations →
+              {homeContent.previewButton || "Voir toutes nos réalisations →"}
             </Link>
           </FadeIn>
         </div>
@@ -214,9 +212,9 @@ export default function Home() {
       <section className="cta-banner" id="cta">
         <div className="container">
           <div className="cta-inner">
-            <h2>Votre projet commence ici</h2>
+            <h2>{homeContent.ctaTitle || "Votre projet commence ici"}</h2>
             <Link to="/contact" className="btn btn-outline">
-              Nous contacter
+              {homeContent.ctaButton || "Nous contacter"}
             </Link>
           </div>
         </div>

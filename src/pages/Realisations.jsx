@@ -46,6 +46,7 @@ export default function Realisations() {
   const [projects, setProjects] = useState([])
   const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [settings, setSettings] = useState(defaultSettings)
 
   useEffect(() => {
     fetchPublicProjects()
@@ -67,7 +68,19 @@ export default function Realisations() {
         photos: (p.photos || []).map(enrichPhoto)
       }))))
       .finally(() => setLoading(false))
+
+    fetchPublicSettings().then(d => {
+      if (d && typeof d === 'object') setSettings(d)
+    }).catch(() => {})
+
+    const handleUpdate = (e) => {
+      if (e.detail) setSettings(e.detail)
+    }
+    window.addEventListener('cl_settings_updated', handleUpdate)
+    return () => window.removeEventListener('cl_settings_updated', handleUpdate)
   }, [])
+
+  const realisationsContent = settings.content?.realisations || defaultSettings.content?.realisations || {}
 
   const filtered = filter === 'all'
     ? projects
@@ -78,11 +91,10 @@ export default function Realisations() {
       <section className="page-header" id="realisations-header">
         <div className="container">
           <FadeIn>
-            <span className="section-label">Portfolio</span>
-            <h1 className="section-title">Nos réalisations</h1>
+            <span className="section-label">{realisationsContent.headerLabel || "Portfolio"}</span>
+            <h1 className="section-title">{realisationsContent.headerTitle || "Nos réalisations"}</h1>
             <p className="section-subtitle">
-              Chaque jardin est une création unique. Découvrez nos projets
-              et laissez-vous inspirer pour le vôtre.
+              {realisationsContent.headerSubtitle || "Chaque espace est une création unique. Découvrez nos réalisations et laissez-vous inspirer pour le vôtre."}
             </p>
 
             <div className="filter-bar">
@@ -108,7 +120,7 @@ export default function Realisations() {
             <div className="projects-grid">
               {filtered.length === 0 ? (
                 <div className="projects-empty">
-                  <p>Aucune réalisation dans cette catégorie pour le moment.</p>
+                  <p>{realisationsContent.emptyText || "Aucune réalisation dans cette catégorie pour le moment."}</p>
                 </div>
               ) : (
                 filtered.map((project, i) => {

@@ -20,17 +20,20 @@ export default function Navbar() {
     brandSub: 'Paysagiste Concepteur',
     logoUrl: '/images/logo.png',
   })
+  const [navbarCta, setNavbarCta] = useState(defaultSettings.content?.navbar?.ctaButton || 'Demander un devis')
   const location = useLocation()
 
   useEffect(() => {
     const handleUpdate = (e) => {
       if (e.detail && e.detail.branding) setBranding(e.detail.branding)
+      if (e.detail?.content?.navbar?.ctaButton) setNavbarCta(e.detail.content.navbar.ctaButton)
     }
     window.addEventListener('cl_settings_updated', handleUpdate)
 
     fetchPublicSettings()
       .then(d => {
         if (d && d.branding) setBranding(d.branding)
+        if (d?.content?.navbar?.ctaButton) setNavbarCta(d.content.navbar.ctaButton)
       })
       .catch(() => {})
 
@@ -85,7 +88,7 @@ export default function Navbar() {
             </Link>
           ))}
           <Link to="/contact" className="navbar-btn-devis">
-            <span>Demander un devis</span>
+            <span>{navbarCta}</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>

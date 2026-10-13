@@ -148,12 +148,16 @@ export async function getSettings() {
     }
   }
 
+  const fileData = readJSONFile(settingsFile, null)
+  if (fileData) {
+    memorySettings = fileData
+    return fileData
+  }
+
   if (memorySettings) {
-    console.log('[Storage] 📖 Paramètres chargés depuis la mémoire')
     return memorySettings
   }
-  memorySettings = readJSONFile(settingsFile, {})
-  console.log('[Storage] 📖 Paramètres chargés depuis le fichier local settings.json')
+  memorySettings = {}
   return memorySettings
 }
 

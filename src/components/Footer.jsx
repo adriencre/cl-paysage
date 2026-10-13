@@ -28,6 +28,8 @@ export default function Footer() {
   const email = settings.email || defaultSettings.email || 'contact@clpaysage.fr'
   const desc = settings.siteDescription || defaultSettings.siteDescription
 
+  const footerContent = settings.content?.footer || defaultSettings.content?.footer || {}
+
   return (
     <footer className="footer" id="footer">
       <div className="container">
@@ -45,7 +47,7 @@ export default function Footer() {
           </div>
 
           <div className="footer-col">
-            <h4 className="footer-heading">Navigation</h4>
+            <h4 className="footer-heading">{footerContent.navigationHeading || "Navigation"}</h4>
             <div className="footer-links">
               <Link to="/">Accueil</Link>
               <Link to="/realisations">Réalisations</Link>
@@ -55,7 +57,7 @@ export default function Footer() {
           </div>
 
           <div className="footer-col">
-            <h4 className="footer-heading">Contact</h4>
+            <h4 className="footer-heading">{footerContent.contactHeading || "Contact"}</h4>
             <div className="footer-links">
               <a href={`tel:${phone.replace(/[^0-9+]/g, '')}`}>{phone}</a>
               <a href={`mailto:${email}`}>{email}</a>
@@ -65,7 +67,7 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <p>© {year} {branding.brandName || 'CL'} {branding.brandAccent || 'Paysage'}. Tous droits réservés.</p>
-          <p>Site réalisé avec passion</p>
+          <p>{footerContent.creditText || "Site réalisé avec passion"}</p>
         </div>
       </div>
     </footer>

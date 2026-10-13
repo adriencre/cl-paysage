@@ -303,6 +303,7 @@ router.put('/admin/settings', authMiddleware, async (req, res) => {
       branding: { ...(current.branding || {}), ...(req.body.branding || {}) },
       hero: { ...(current.hero || {}), ...(req.body.hero || {}) },
       socialLinks: { ...(current.socialLinks || {}), ...(req.body.socialLinks || {}) },
+      content: { ...(current.content || {}), ...(req.body.content || {}) },
     }
     const saveResult = await saveSettings(updated)
     console.log(`[API Settings] ⚙️ Paramètres enregistrés avec succès ! (stockage: ${saveResult.storage}, persisté: ${saveResult.persisted})`)

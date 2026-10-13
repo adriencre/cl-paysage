@@ -89,6 +89,7 @@ ON CONFLICT (id) DO UPDATE SET
   brand_accent = COALESCE(settings.brand_accent, EXCLUDED.brand_accent),
   brand_sub = COALESCE(settings.brand_sub, EXCLUDED.brand_sub),
   logo_url = COALESCE(settings.logo_url, EXCLUDED.logo_url),
+  data = COALESCE(settings.data, EXCLUDED.data),
   updated_at = NOW();
 
 -- 2. Table des Projets / Réalisations

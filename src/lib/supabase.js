@@ -65,6 +65,8 @@ export async function fetchSettingsFromSupabase() {
     if (data) {
       // 1. Lire depuis les colonnes dédiées ou depuis le champ JSON 'data' en fallback
       const jsonData = (data.data && typeof data.data === 'object') ? data.data : {}
+      const jsonContent = jsonData.content || {}
+      const defContent = defaultSettings.content || {}
 
       return {
         ...defaultSettings,
@@ -89,6 +91,15 @@ export async function fetchSettingsFromSupabase() {
           buttonText: data.hero_button_text || jsonData.hero?.buttonText || defaultSettings.hero.buttonText,
         },
         socialLinks: data.social_links || jsonData.socialLinks || defaultSettings.socialLinks,
+        content: {
+          home: { ...(defContent.home || {}), ...(jsonContent.home || {}) },
+          services: { ...(defContent.services || {}), ...(jsonContent.services || {}) },
+          taxCredit: { ...(defContent.taxCredit || {}), ...(jsonContent.taxCredit || {}) },
+          contact: { ...(defContent.contact || {}), ...(jsonContent.contact || {}) },
+          realisations: { ...(defContent.realisations || {}), ...(jsonContent.realisations || {}) },
+          navbar: { ...(defContent.navbar || {}), ...(jsonContent.navbar || {}) },
+          footer: { ...(defContent.footer || {}), ...(jsonContent.footer || {}) },
+        },
       }
     }
   } catch (err) {

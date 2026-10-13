@@ -60,17 +60,18 @@ export default function Contact() {
     }
   }
 
+  const contactContent = settings.content?.contact || defaultSettings.content?.contact || {}
+
   return (
     <>
       {/* Header */}
       <section className="page-header" id="contact-header">
         <div className="container">
           <FadeIn>
-            <span className="section-label">Contact</span>
-            <h1 className="section-title">Parlons de votre projet</h1>
+            <span className="section-label">{contactContent.headerLabel || "Contact"}</span>
+            <h1 className="section-title">{contactContent.headerTitle || "Parlons de votre projet"}</h1>
             <p className="section-subtitle">
-              Une idée, une envie, une question ?
-              Contactez-nous pour échanger sur votre futur jardin.
+              {contactContent.headerSubtitle || "Une idée, une envie, une question ? Contactez-nous pour échanger sur votre futur extérieur."}
             </p>
           </FadeIn>
         </div>
@@ -104,10 +105,10 @@ export default function Contact() {
                       fontSize: '1.75rem'
                     }}>✓</div>
                     <h3 style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#1a1f16', marginBottom: '0.75rem', fontSize: '1.5rem' }}>
-                      Merci pour votre message !
+                      {contactContent.successTitle || "Merci pour votre message !"}
                     </h3>
                     <p style={{ color: '#52525b', lineHeight: 1.6, marginBottom: '1.5rem', maxWidth: '440px', margin: '0 auto 1.5rem' }}>
-                      Votre demande a bien été transmise à notre équipe. Nous l'étudions avec attention et reviendrons vers vous dans les plus brefs délais.
+                      {contactContent.successDesc || "Votre demande a bien été transmise à notre équipe. Nous l'étudions avec attention et reviendrons vers vous dans les plus brefs délais."}
                     </p>
                     <button
                       type="button"
@@ -115,7 +116,7 @@ export default function Contact() {
                       onClick={() => setSubmitted(false)}
                       style={{ fontSize: '0.9rem', padding: '0.6rem 1.4rem' }}
                     >
-                      Envoyer un autre message
+                      {contactContent.successButton || "Envoyer un autre message"}
                     </button>
                   </div>
                 ) : (
@@ -223,7 +224,7 @@ export default function Contact() {
                       disabled={sending}
                       style={{ opacity: sending ? 0.7 : 1 }}
                     >
-                      {sending ? 'Envoi en cours…' : 'Envoyer le message'}
+                      {sending ? 'Envoi en cours…' : (contactContent.submitButton || 'Envoyer le message')}
                     </button>
                   </form>
                 )}
@@ -233,9 +234,7 @@ export default function Contact() {
               <div className="contact-info">
                 <div className="contact-info-intro">
                   <p>
-                    Nous intervenons dans toute la région.
-                    N'hésitez pas à nous contacter par téléphone
-                    ou via le formulaire pour un premier échange gratuit et sans engagement.
+                    {contactContent.introText || "Nous intervenons dans toute la région. N'hésitez pas à nous contacter par téléphone ou via le formulaire pour un premier échange gratuit et sans engagement."}
                   </p>
                 </div>
 
