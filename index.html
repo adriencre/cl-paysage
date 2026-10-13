@@ -135,6 +135,44 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Masquer le pop-up / drawer / badge Netlify injecté par-dessus le site -->
+    <style>
+      iframe[src*="netlify"],
+      iframe[src^="https://app.netlify.com"],
+      iframe[title*="Netlify" i],
+      iframe#netlify-drawer,
+      #netlify-drawer,
+      [data-netlify-drawer],
+      div[data-netlify-site-id],
+      div[data-netlify-deploy-id],
+      div[id^="netlify-"],
+      aside[id^="netlify-"],
+      netlify-drawer,
+      netlify-feedback,
+      [data-netlify-feedback],
+      [id*="netlify-feedback"],
+      [class*="netlify-feedback"],
+      [id*="netlify-drawer"],
+      [class*="netlify-drawer"],
+      #netlify-identity-widget,
+      [data-netlify-badge],
+      .netlify-feedback-badge {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        clip: rect(0, 0, 0, 0) !important;
+        width: 0 !important;
+        height: 0 !important;
+        max-width: 0 !important;
+        max-height: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        z-index: -99999 !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
